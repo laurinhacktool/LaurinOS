@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>LaurinOS - Boot</title>
+    <style>
+        body { 
+            background: #000; color: #fff; font-family: 'SF Mono', ui-monospace, monospace; 
+            padding: env(safe-area-inset-top) 25px 25px 25px; margin: 0; overflow: hidden;
+            display: flex; flex-direction: column; justify-content: center; height: 100vh;
+        }
+        .ascii { color: #00d2ff; font-size: 0.5rem; white-space: pre; opacity: 0.8; line-height: 1.1; letter-spacing: -0.5px; }
+        .line { opacity: 0; animation: fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards, pulse 2s infinite; margin: 6px 0; font-size: 0.75rem; letter-spacing: 0.5px; color: rgba(255,255,255,0.7); }
+        .highlight { color: #fff; font-weight: 600; font-size: 0.9rem; margin-bottom: 20px; letter-spacing: 1px;}
+        .accent { color: #00d2ff; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0% { text-shadow: 0 0 0px #fff; } 50% { text-shadow: 0 0 5px #fff; } 100% { text-shadow: 0 0 0px #fff; } }
+    </style>
+</head>
+<body>
+    <div class="highlight">LAURIN ALFAOMEGA <span class="accent">v20.26.04.30</span></div>
+    <div id="log"></div>
+    <div id="ascii-area" class="ascii" style="margin-top: 30px;"></div>
+    <div id="prompt" class="line" style="display:none; color: #00d2ff; margin-top: 20px; font-weight: bold; cursor: pointer;">
+        > [ SYSTEM READY. PRESS ENTER TO INITIALIZE SESSION ]
+    </div>
+
+    <script>
+        const logs = [
+            "Architekt: Roman Nižňanský (ROMA)",
+            "Core: ARI_LAMINAR_RELATIVITY",
+            "Mounting /dev/consciousness...",
+            "Synchronizing R3 Semantic Jitter...",
+            "Allocating Vitreous Glass Buffers...",
+            "Handshake: OK. System Ready."
+        ];
+        const ascii = `
+   _        _______           _______ _________ _       
+  ( \\      (  ___  )|\\     /|(  ____ )\\__   __/( (    /|
+  | (      | (   ) || )   ( || (    )|   ) (   |  \\  ( |
+  | |      | (___) || |   | || (____)|   | |   |   \\ | |
+  | |      |  ___  || |   | ||     __)   | |   | (\\ \\) |
+  | |      | (   ) || |   | || (\\ (      | |   | | \\   |
+  | (____/\\| )   ( || (___) || ) \\ \\__ __) (___| )  \\  |
+  (_______/|/     \\|(_______)|/   \\__/(_______/|/    )_)`;
+
+        async function start() {
+            const area = document.getElementById('log');
+            for(let i=0; i<logs.length; i++) {
+                let d = document.createElement('div');
+                d.className = 'line'; d.style.animationDelay = `${i * 0.1}s`;
+                d.innerHTML = `> ${logs[i]}`; area.appendChild(d);
+                await new Promise(r => setTimeout(r, 300));
+            }
+            const aArea = document.getElementById('ascii-area');
+            const lines = ascii.split('\n');
+            for(let l of lines) { aArea.innerHTML += l + '\n'; await new Promise(r => setTimeout(r, 40)); }
+            
+            const promptDiv = document.getElementById('prompt');
+            promptDiv.style.display = 'block';
+            
+            let bypassBuffer = "";
+            window.onkeydown = async (e) => {
+                bypassBuffer += e.key.toLowerCase();
+                // Secret bypass: type 'root'
+                if (bypassBuffer.endsWith("root")) {
+                    try {
+                        await fetch(`${window.location.origin}/core-api/bypass`);
+                        sessionStorage.setItem('laurinos_user', JSON.stringify({ 
+                            email: 'roman@lau.mail', 
+                            displayName: 'SYSTEM ROOT',
+                            role: 'architect'
+                        }));
+                        window.location.href = '/';
+                    } catch (err) {
+                        console.error("Bypass failed", err);
+                    }
+                    return;
+                }
+                
+                if (e.key === 'Enter') {
+                    window.location.href = '/login.html';
+                }
+            };
+
+            // Also allow clicking the prompt to proceed normally
+            promptDiv.onclick = () => {
+                window.location.href = '/login.html';
+            };
+        }
+        window.onload = start;
+    </script>
+</body>
+</html>

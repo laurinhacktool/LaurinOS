@@ -1,0 +1,246 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: nodes
+    // Document ID: address (string)
+    // Fields:
+    //   - id: int (required) - Genesis ID
+    //   - address: string (required) - Wallet address
+    //   - balance: number (required) - LauCoin balance
+    //   - private_key: string (optional) - Private key
+    //   - state_hash: string (required) - Kernel state hash
+    //   - lastClaimed: int (optional) - Timestamp
+    //   - displayName: string (optional) - User display name
+    //   - email: string (optional) - User email
+    //
+    // Collection: transactions
+    // Document ID: auto-generated
+    // Fields:
+    //   - from: string (required) - Sender address
+    //   - to: string (required) - Receiver address
+    //   - amount: number (required) - Amount
+    //   - timestamp: int (required) - Time of transaction
+    //   - hash: string (required) - Transaction hash
+    //   - type: string (required) - Transaction type
+    //
+    // Collection: mining_slots
+    // Document ID: slotId (string)
+    // Fields:
+    //   - id: int (required) - Slot ID
+    //   - lastMinedAt: int (required) - Timestamp
+    //   - cooldownMs: int (required) - Cooldown duration
+    //   - potentialReward: number (required) - Reward potential
+    //   - lastMiner: string (required) - Last miner address
+    //   - isGolden: bool (optional) - Golden status
+    //   - lastResultEmpty: bool (optional) - Empty status
+    //
+    // Collection: requests
+    // Document ID: auto-generated
+    // Fields:
+    //   - from: string (required) - Requester address
+    //   - to: string (required) - Target address
+    //   - amount: number (required) - Amount
+    //   - timestamp: int (required) - Time of request
+    //   - status: string (required) - Request status
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "romanniznan@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidNode(data) {
+      return data.keys().hasAll(['address', 'balance']) &&
+             data.address is string && data.address.size() < 128 &&
+             data.balance is number &&
+             (!data.keys().hasAny(['id']) || data.id is int) &&
+             (!data.keys().hasAny(['state_hash']) || data.state_hash is string) &&
+             (!data.keys().hasAny(['private_key']) || data.private_key is string) &&
+             (!data.keys().hasAny(['lastClaimed']) || data.lastClaimed is int) &&
+             (!data.keys().hasAny(['displayName']) || data.displayName is string) &&
+             (!data.keys().hasAny(['email']) || data.email is string) &&
+             (!data.keys().hasAny(['lastSync']) || data.lastSync is int);
+    }
+
+    function isValidTransaction(data) {
+      return data.keys().hasAll(['from', 'to', 'amount', 'timestamp', 'hash', 'type']) &&
+             data.from is string && data.from.size() < 128 &&
+             data.to is string && data.to.size() < 128 &&
+             data.amount is number && data.amount >= 0 &&
+             data.timestamp is int &&
+             data.hash is string &&
+             data.type is string;
+    }
+
+    function isValidMiningSlot(data) {
+      return data.keys().hasAll(['id', 'lastMinedAt', 'cooldownMs', 'potentialReward', 'lastMiner']) &&
+             data.id is int &&
+             data.lastMinedAt is int &&
+             data.cooldownMs is int &&
+             data.potentialReward is number &&
+             data.lastMiner is string;
+    }
+
+    function isValidRequest(data) {
+      return data.keys().hasAll(['from', 'to', 'amount', 'timestamp', 'status']) &&
+             data.from is string && data.from.size() < 128 &&
+             data.to is string && data.to.size() < 128 &&
+             data.amount is number && data.amount > 0 &&
+             data.timestamp is int &&
+             data.status in ['pending', 'accepted', 'rejected'];
+    }
+
+    function isValidKnowledgeNode(data) {
+      return data.keys().hasAll(['prompt', 'response', 'timestamp']) &&
+             data.prompt is string && data.prompt.size() < 2000 &&
+             data.response is string && data.response.size() < 10000 &&
+             data.timestamp is string;
+    }
+
+    function isValidSystemNode(data) {
+      return data.keys().hasAll(['uid', 'email', 'batteryLevel', 'isCharging', 'platform', 'lastUpdate']) &&
+             data.uid is string && data.uid == request.auth.uid &&
+             data.email is string &&
+             data.batteryLevel is number &&
+             data.isCharging is bool &&
+             data.platform is string &&
+             data.lastUpdate is timestamp &&
+             data.email.size() < 128 &&
+             data.platform.size() < 128;
+    }
+
+    function isSystemNodeUpdate(data, existingData) {
+      // Allow updating lastUpdate only, or full valid SystemNode
+      return (data.diff(existingData).affectedKeys().hasOnly(['lastUpdate']) && data.lastUpdate is timestamp) ||
+             isValidSystemNode(data);
+    }
+
+    function isValidLease(data) {
+      return data.keys().hasAll(['lessor', 'power', 'price', 'durationMs', 'status', 'createdAt']) &&
+             data.lessor is string && data.lessor.size() < 128 &&
+             (!data.keys().hasAny(['lessee']) || data.lessee == null || (data.lessee is string && data.lessee.size() < 128)) &&
+             data.power is number && data.power > 0 &&
+             data.price is number && data.price >= 0 &&
+             data.durationMs is number && data.durationMs > 0 &&
+             (!data.keys().hasAny(['expiresAt']) || data.expiresAt == null || data.expiresAt is int) &&
+             data.status in ['available', 'active', 'expired'] &&
+             data.createdAt is int;
+    }
+
+    match /nodes/{nodeId} {
+      allow read: if isAuthenticated();
+      // Allow admins to seed LauNodes, or users to create their own SystemNode
+      allow create: if isAuthenticated() && (
+        (isAdmin() && isValidNode(request.resource.data)) || 
+        (nodeId == request.auth.uid && isValidSystemNode(request.resource.data))
+      );
+      // Allow updates if it's a valid LauNode (admins/transactions) or the owner's SystemNode
+      allow update: if isAuthenticated() && (
+        isValidNode(request.resource.data) || 
+        (nodeId == request.auth.uid && isSystemNodeUpdate(request.resource.data, resource.data))
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /transactions/{txId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidTransaction(request.resource.data);
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    match /mining_slots/{slotId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidMiningSlot(request.resource.data) && isAdmin();
+      allow update: if isAuthenticated() && isValidMiningSlot(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /requests/{requestId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidRequest(request.resource.data);
+      allow update: if isAuthenticated() && isValidRequest(request.resource.data);
+      allow delete: if isAuthenticated();
+    }
+
+    match /leases/{leaseId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidLease(request.resource.data);
+      allow update: if isAuthenticated() && isValidLease(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /knowledge_base/{nodeId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidKnowledgeNode(request.resource.data);
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    function isValidMessage(data) {
+      return data.keys().hasAll(['senderEmail', 'receiverEmail', 'text', 'timestamp', 'read']) &&
+             data.senderEmail is string && data.senderEmail.size() < 128 &&
+             data.receiverEmail is string && data.receiverEmail.size() < 128 &&
+             data.text is string && data.text.size() < 5000 &&
+             data.timestamp is string &&
+             data.read is bool;
+    }
+
+    function isValidApp(data) {
+      return data.keys().hasAll(['hash_id', 'core_meaning', 'html_payload', 'meta', 'authorEmail', 'timestamp']) &&
+             data.hash_id is string &&
+             data.core_meaning is string &&
+             data.html_payload is string &&
+             data.meta is map &&
+             data.authorEmail is string &&
+             data.timestamp is string;
+    }
+
+    match /apps/{appId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidApp(request.resource.data) && request.auth.token.email == request.resource.data.authorEmail;
+      allow update: if isAuthenticated() && isValidApp(request.resource.data) && request.auth.token.email == resource.data.authorEmail;
+      allow delete: if isAdmin() || (isAuthenticated() && request.auth.token.email == resource.data.authorEmail);
+    }
+
+    match /messages/{messageId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidMessage(request.resource.data) && request.auth.token.email == request.resource.data.senderEmail;
+      allow update: if isAuthenticated();
+      allow delete: if isAdmin();
+    }
+
+    match /chat/{chatId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAuthenticated() && (
+        isAdmin() || 
+        (request.auth.uid == userId)
+      );
+      allow delete: if isAdmin();
+    }
+    
+    match /test/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

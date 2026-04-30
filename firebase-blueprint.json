@@ -1,0 +1,165 @@
+{
+  "entities": {
+    "LauNode": {
+      "title": "LauCoin Node",
+      "description": "A node in the LauCoin network",
+      "type": "object",
+      "properties": {
+        "address": { "type": "string", "description": "Wallet address" },
+        "balance": { "type": "number", "description": "LauCoin balance" },
+        "private_key": { "type": "string", "description": "Private key (for genesis nodes)" },
+        "state_hash": { "type": "string", "description": "Kernel state hash" },
+        "id": { "type": "integer", "description": "Genesis ID" },
+        "displayName": { "type": "string", "description": "User display name" },
+        "email": { "type": "string", "description": "User email" },
+        "lastClaimed": { "type": "integer", "description": "Timestamp of last staking claim" }
+      },
+      "required": ["address", "balance"]
+    },
+    "Transaction": {
+      "title": "LauCoin Transaction",
+      "description": "A transaction between two nodes",
+      "type": "object",
+      "properties": {
+        "from": { "type": "string", "description": "Sender address" },
+        "to": { "type": "string", "description": "Recipient address" },
+        "amount": { "type": "number", "description": "Amount transferred" },
+        "timestamp": { "type": "integer", "description": "Transaction timestamp" },
+        "hash": { "type": "string", "description": "Transaction hash" },
+        "type": { "type": "string", "description": "Transaction type (transfer, mine, etc.)" }
+      },
+      "required": ["from", "to", "amount", "timestamp", "hash", "type"]
+    },
+    "MiningSlot": {
+      "title": "Mining Slot",
+      "description": "A slot in the mining grid",
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer", "description": "Slot ID" },
+        "lastMinedAt": { "type": "integer", "description": "Timestamp of last successful mine" },
+        "cooldownMs": { "type": "integer", "description": "Cooldown duration in milliseconds" },
+        "potentialReward": { "type": "number", "description": "Current reward potential" },
+        "lastMiner": { "type": "string", "description": "Address of the last miner" }
+      },
+      "required": ["id", "lastMinedAt", "cooldownMs", "potentialReward", "lastMiner"]
+    },
+    "LauRequest": {
+      "title": "LauCoin Request",
+      "description": "A payment request from one node to another",
+      "type": "object",
+      "properties": {
+        "from": { "type": "string", "description": "Requester address" },
+        "to": { "type": "string", "description": "Target address" },
+        "amount": { "type": "number", "description": "Requested amount" },
+        "timestamp": { "type": "integer", "description": "Request timestamp" },
+        "status": { "type": "string", "description": "Request status (pending, accepted, rejected)" }
+      },
+      "required": ["from", "to", "amount", "timestamp", "status"]
+    },
+    "SystemNode": {
+      "title": "System Node",
+      "description": "A node representing a user's device system info",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "User UID" },
+        "email": { "type": "string", "description": "User email" },
+        "batteryLevel": { "type": "number", "description": "Battery level percentage" },
+        "isCharging": { "type": "boolean", "description": "Charging status" },
+        "platform": { "type": "string", "description": "Device platform" },
+        "lastUpdate": { "type": "string", "format": "date-time", "description": "Last update timestamp" }
+      },
+      "required": ["uid", "email", "batteryLevel", "isCharging", "platform", "lastUpdate"]
+    },
+    "KnowledgeNode": {
+      "title": "Knowledge Node",
+      "description": "A learned pattern or response from the Gemini API",
+      "type": "object",
+      "properties": {
+        "prompt": { "type": "string", "description": "The user's prompt" },
+        "response": { "type": "string", "description": "The AI's response" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "When it was learned" },
+        "tags": { "type": "array", "items": { "type": "string" }, "description": "Keywords for matching" }
+      },
+      "required": ["prompt", "response", "timestamp"]
+    },
+    "DirectMessage": {
+      "title": "Direct Message",
+      "description": "A private message between two users",
+      "type": "object",
+      "properties": {
+        "senderEmail": { "type": "string", "description": "Sender's email address" },
+        "receiverEmail": { "type": "string", "description": "Receiver's email address" },
+        "text": { "type": "string", "description": "Message content" },
+        "timestamp": { "type": "string", "description": "ISO timestamp" },
+        "read": { "type": "boolean", "description": "Read status" }
+      },
+      "required": ["senderEmail", "receiverEmail", "text", "timestamp", "read"]
+    },
+    "Lease": {
+      "title": "Lease",
+      "description": "A lease for mining power",
+      "type": "object",
+      "properties": {
+        "lessor": { "type": "string", "description": "The one providing the power" },
+        "lessee": { "type": "string", "description": "The one using the power (null if available)" },
+        "power": { "type": "number", "description": "Hashrate multiplier" },
+        "price": { "type": "number", "description": "Cost in LauCoin" },
+        "durationMs": { "type": "number", "description": "Duration in milliseconds" },
+        "expiresAt": { "type": "integer", "description": "Expiration timestamp" },
+        "status": { "type": "string", "description": "Status (available, active, expired)" },
+        "createdAt": { "type": "integer", "description": "Creation timestamp" }
+      },
+      "required": ["lessor", "power", "price", "durationMs", "status", "createdAt"]
+    },
+    "GeneratedApp": {
+      "title": "Generated App",
+      "description": "An application generated by the Be Creative tool",
+      "type": "object",
+      "properties": {
+        "hash_id": { "type": "string", "description": "Unique hash identifier" },
+        "core_meaning": { "type": "string", "description": "The prompt used to generate the app" },
+        "resonance_c_qc": { "type": "number", "description": "Resonance value" },
+        "lora_tensor": { "type": "number", "description": "Lora tensor value" },
+        "html_payload": { "type": "string", "description": "The generated HTML/JS payload" },
+        "meta": { "type": "object", "description": "Metadata like name, icon, color" },
+        "authorEmail": { "type": "string", "description": "Email of the user who generated the app" },
+        "timestamp": { "type": "string", "description": "ISO timestamp of generation" }
+      },
+      "required": ["hash_id", "core_meaning", "html_payload", "meta", "authorEmail", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/apps/{appId}": {
+      "schema": "GeneratedApp",
+      "description": "Applications generated by users"
+    },
+    "/messages/{messageId}": {
+      "schema": "DirectMessage",
+      "description": "Private messages between users"
+    },
+    "/nodes/{nodeId}": {
+      "schema": "LauNode | SystemNode",
+      "description": "Collection of all network nodes (wallet nodes or system info nodes)"
+    },
+    "/transactions/{txId}": {
+      "schema": "Transaction",
+      "description": "History of all network transactions"
+    },
+    "/mining_slots/{slotId}": {
+      "schema": "MiningSlot",
+      "description": "State of the mining grid"
+    },
+    "/requests/{requestId}": {
+      "schema": "LauRequest",
+      "description": "Pending and historical payment requests"
+    },
+    "/leases/{leaseId}": {
+      "schema": "Lease",
+      "description": "Mining power leases"
+    },
+    "/knowledge_base/{nodeId}": {
+      "schema": "KnowledgeNode",
+      "description": "Learned knowledge base for offline core autonomy"
+    }
+  }
+}

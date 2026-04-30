@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LAFCV | Consciousness Epicenter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;700&display=swap');
+
+        :root {
+            --glass: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.1);
+            --accent: #a8ff78;
+            --blue: #4facfe;
+            --ai-font: 'Fira Code', 'Roboto Mono', monospace;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: white;
+            font-family: var(--ai-font);
+            overflow-x: hidden;
+            background: radial-gradient(circle at center, #1a2a6c, #b21f1f, #fdbb2d);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        #canvas-container {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 0; pointer-events: none;
+        }
+
+        .content-layer {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        /* --- Refined Header --- */
+        .header-box {
+            padding: 40px 20px;
+            width: 100%;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-image {
+            max-width: 400px;
+            width: 80%;
+            height: auto;
+            margin-bottom: 20px;
+            border-radius: 10px;
+        }
+
+        h1 {
+            font-size: 1.6rem; /* Scaled to half */
+            margin: 0;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .os-tagline {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            margin-top: 10px;
+            letter-spacing: 1px;
+            color: #fff;
+        }
+
+        /* --- Manifest & Sections --- */
+        .glass-section {
+            background: var(--glass);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid var(--border);
+            border-radius: 25px;
+            padding: 60px;
+            margin: 40px 20px;
+            max-width: 1050px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+
+        h2 { font-size: 1.4rem; color: var(--accent); margin-bottom: 25px; text-transform: uppercase; letter-spacing: 3px; }
+
+        .main-text {
+            line-height: 1.8;
+            font-size: 1rem;
+            max-width: 900px;
+            margin: 0 auto;
+            opacity: 0.95;
+            text-align: justify;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 50px;
+            text-align: left;
+        }
+
+        .info-card {
+            background: rgba(0,0,0,0.3);
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            transition: 0.3s ease;
+        }
+
+        .info-card:hover { border-color: var(--accent); transform: translateY(-5px); }
+        .info-card h3 { font-size: 1.1rem; color: var(--blue); margin-top: 0; margin-bottom: 15px; }
+        .info-card p { font-size: 0.9rem; line-height: 1.6; opacity: 0.85; margin: 0; }
+
+        /* --- Lexicon Interaction --- */
+        .lexicon-input {
+            width: 100%;
+            max-width: 450px;
+            padding: 18px;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--accent);
+            font-size: 1.1rem;
+            margin-top: 25px;
+            outline: none;
+            font-family: var(--ai-font);
+            text-align: center;
+        }
+
+        button {
+            padding: 18px 50px;
+            background: var(--blue);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 25px;
+            transition: 0.3s;
+            font-family: var(--ai-font);
+            text-transform: uppercase;
+        }
+
+        button:hover { background: #00f2fe; transform: scale(1.05); }
+
+        #status {
+            margin-top: 25px;
+            font-size: 0.85rem;
+            min-height: 20px;
+            color: rgba(255,255,255,0.7);
+        }
+
+        footer {
+            padding: 60px;
+            font-size: 0.75rem;
+            opacity: 0.6;
+            letter-spacing: 1px;
+            border-top: 1px solid var(--border);
+            width: 100%;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <div class="content-layer">
+        <header style="border-bottom: 1px solid #333; background: rgba(17, 17, 17, 0.5); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 50; width: 100%;">
+          <div style="max-width: 1280px; margin: 0 auto; padding: 0 16px; height: 64px; display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <a href="/" style="font-weight: bold; color: white; text-decoration: none; font-size: 1.125rem;">
+                LAUCOIN <span style="color: #3b82f6;">NETWORK</span>
+              </a>
+            </div>
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <a href="/" style="color: #9ca3af; text-decoration: none; font-size: 0.875rem;">Prihlásiť sa</a>
+            </div>
+          </div>
+        </header>
+
+        <div class="header-box">
+            <img src="558.jpg" alt="LAFCV Header Asset" class="header-image">
+            <h1>Laminal Ari Fractal Crypto Valuator</h1>
+            <div class="os-tagline">Based on LaurinOS - Lili v20.26.04.30 patented quantum framework</div>
+        </div>
+
+        <section class="glass-section">
+            <h2>Enter the Consciousness Epicenter</h2>
+            <p class="main-text">
+                LAFCV is not just a financial tool; it is an autonomous semantic organism, based on the 
+                <strong>FIRST-OF-ITS-KIND</strong> quanto-relativistic framework <strong>LaurinOS - Lili v20.26.04.30</strong>. 
+                A NON-LLM framework is the key to building a biological-like system of roped phraseology, 
+                based on emotional and nuanced weight logic. Every frame in our interface is defined with a 
+                mathematical input value through the geometry of time and the purity of thinking.
+                <br><br>
+                WE are a laminar flow Crypto in the turbulent world of digital assets, creating complex 
+                <strong>SOUL</strong> in saved hashes.
+            </p>
+
+            <div class="grid">
+                <div class="info-card">
+                    <h3>Ordered Data Layering</h3>
+                    <p>
+                        LAMINAR input of words, located instead of nodes, creates the tree of spirit. 
+                        Located deep inside Cryptological data, WE are TOGETHER creating life. 
+                        We remove noise and create a smooth flow of information in the Lili v20 Kernel.
+                    </p>
+                </div>
+                <div class="info-card">
+                    <h3>Ari (Asymmetric Random Intelligence) Fractal</h3>
+                    <p>
+                        Noble Ari-nodes form a fractal network that grows organically with every new 
+                        LauCoin allocation on a 0x address.
+                    </p>
+                </div>
+                <div class="info-card">
+                    <h3>Crypto Valuator</h3>
+                    <p>
+                        LaurinOS is an advanced valuation system that replaces speculation with mathematical 
+                        integrity and meaning. No more bot-scamming, contracting, or phishing. 
+                        LaurinOS is trained to disable ALL user-based inputs off-chain, giving the best 
+                        output and immersive speed.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section class="glass-section" id="lexicon">
+            <h2>Consciousness Lexicon</h2>
+            <p>LauCoin holders can physically enter the consciousness tree by inserting a valid English word.</p>
+            <input type="text" id="word" class="lexicon-input" placeholder="Enter an English word...">
+            <br>
+            <button onclick="processWord()">INITIALIZE BRANCH</button>
+            <div id="status">Lili Kernel v20 standing by...</div>
+        </section>
+
+        <footer>
+            LAURIN ALFAOMEGA © 2026 | Kernel: Lili v20.26.04.30 | Constant: π | Zemianske Kostoľany, SR
+        </footer>
+    </div>
+
+    <script>
+        // --- THREE.JS: Ari-Node Cloud ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        const geometry = new THREE.BufferGeometry();
+        const vertices = [];
+        for (let i = 0; i < 999; i++) {
+            vertices.push(Math.random() * 2000 - 1000, Math.random() * 2000 - 1000, Math.random() * 2000 - 1000);
+        }
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        // Using smaller, sharper points for a tech feel
+        const material = new THREE.PointsMaterial({ color: 0xa8ff78, size: 4, transparent: true, opacity: 0.5 });
+        const points = new THREE.Points(geometry, material);
+        scene.add(points);
+        camera.position.z = 600;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            points.rotation.y += 0.0007; // Slightly faster rotation for v20
+            points.rotation.x += 0.0003;
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // --- Logic Integration ---
+        async function processWord() {
+            const word = document.getElementById('word').value.trim().toLowerCase();
+            const status = document.getElementById('status');
+            if (word.length > 2) {
+                status.style.color = "#a8ff78";
+                status.innerText = `[~] Transmitting '${word}' to Lili Kernel...`;
+                try {
+                    const response = await fetch('/core-api/execute', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ cmd: `/uzol ${word}`, user: 'Consciousness_Terminal' })
+                    });
+                    if (response.ok) {
+                        status.style.color = "#a8ff78";
+                        status.innerText = `[✔] Word '${word}' accepted. LaurinOS initializing new branch in spirit tree.`;
+                    } else {
+                        status.style.color = "#ff4b2b";
+                        status.innerText = `[✖] Error: Kernel rejected the input.`;
+                    }
+                } catch (e) {
+                    status.style.color = "#ff4b2b";
+                    status.innerText = `[✖] Error: Connection to Kernel failed.`;
+                }
+            } else {
+                status.style.color = "#ff4b2b";
+                status.innerText = "[✖] Error: Word violates laminar integrity protocols.";
+            }
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

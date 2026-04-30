@@ -1,0 +1,22 @@
+{
+  "owner": "Roman Nižňanský",
+  "last_reg_state": {
+    "R0": 376,
+    "R1": 255,
+    "R2": 325,
+    "R3": 5960
+  },
+  "chat": [
+    { "user": "roman", "msg": "ahoj", "timestamp": "04:47:44" },
+    { "user": "Lili", "msg": "Lili: Žiaden z dostupných modelov nefunguje. Skontroluj internet.", "timestamp": "04:47:46" },
+    { "user": "roman", "msg": "Kto si", "timestamp": "04:54:29" },
+    { "user": "Lili", "msg": "Lili (BIOS): Som kognitívne jadro systému Laurin Alfaomega v20.26.04.30, bežiace lokálne v tvojom domčeku.", "timestamp": "04:54:29" },
+    { "user": "roman", "msg": "{\"term\": \"Asynchrónny\", \"meaning\": \"Vlastnosť procesov...\", \"weight\": 0.8}", "timestamp": "06:12:52" }
+  ],
+  "registers": {
+    "R0": 376,
+    "R1": 255,
+    "R2": 325,
+    "R3": 5960
+  }
+}

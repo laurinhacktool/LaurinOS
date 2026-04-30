@@ -1,0 +1,9 @@
+{
+  "name": "LaurinOS",
+  "description": "An advanced cyber-intelligence operating system featuring LauCoin crypto-ledger, semantic network expansion, real-time messenger, and a global hacker lookup dossier.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera",
+    "geolocation"
+  ]
+}

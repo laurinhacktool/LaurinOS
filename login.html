@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Laurin Alfaomega v20.26.04.30 - Glass Rozhranie</title>
+    <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --accent-lili: #00d2ff;
+            --accent-roman: #f093fb;
+            --ios-blur: blur(25px);
+        }
+
+        body {
+            background: radial-gradient(circle at center, #1b2735 0%, #090a0f 100%);
+            color: #e0e0e0;
+            font-family: 'Inter', -apple-system, sans-serif;
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .nav-links {
+            position: absolute; 
+            top: 20px; 
+            width: 100%; 
+            text-align: center; 
+            z-index: 10;
+        }
+        
+        .nav-links a {
+            color: #888; 
+            text-decoration: none; 
+            margin: 0 15px; 
+            font-size: 0.85em; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            transition: 0.2s;
+        }
+        
+        .nav-links a:hover { color: var(--accent-lili); }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: var(--ios-blur);
+            -webkit-backdrop-filter: var(--ios-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: 30px;
+            width: 90%;
+            max-width: 1000px;
+            height: 85vh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        .header-stats {
+            display: flex; 
+            justify-content: space-between; 
+            padding-bottom: 15px; 
+            border-bottom: 1px solid var(--glass-border); 
+            margin-bottom: 15px;
+        }
+        
+        .stat-box { font-size: 0.8em; letter-spacing: 1px; color: #aaa; }
+        .stat-box span { font-weight: bold; color: var(--accent-lili); font-size: 1.2em; }
+
+        #chat {
+            flex-grow: 1; 
+            overflow-y: auto; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 15px; 
+            padding-right: 10px; 
+            margin-bottom: 15px;
+        }
+        
+        #chat::-webkit-scrollbar { width: 4px; }
+        #chat::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 10px; }
+
+        .msg { 
+            padding: 12px 18px; 
+            border-radius: 20px; 
+            font-size: 0.9em; 
+            line-height: 1.5; 
+            max-width: 85%; 
+            word-wrap: break-word; 
+        }
+        
+        .msg small { display: block; font-size: 0.75em; opacity: 0.5; margin-bottom: 5px; }
+        .roman, .web { align-self: flex-end; background: rgba(240, 147, 251, 0.15); border: 1px solid rgba(240, 147, 251, 0.3); border-bottom-right-radius: 5px; }
+        .lili { align-self: flex-start; background: rgba(0, 210, 255, 0.1); border: 1px solid rgba(0, 210, 255, 0.3); border-bottom-left-radius: 5px; }
+
+        .input-area { display: flex; gap: 10px; }
+        input {
+            flex-grow: 1; padding: 18px; border-radius: 20px; border: 1px solid var(--glass-border);
+            background: rgba(0, 0, 0, 0.3); color: white; font-size: 1em; outline: none; transition: 0.3s;
+        }
+        input:focus { border-color: var(--accent-roman); box-shadow: 0 0 15px rgba(240, 147, 251, 0.2); }
+        button {
+            background: transparent; border: 1px solid var(--accent-roman); color: var(--accent-roman);
+            border-radius: 20px; padding: 0 25px; font-weight: bold; font-size: 0.9em; cursor: pointer; transition: 0.2s;
+        }
+        button:hover { background: var(--accent-roman); color: #000; }
+    </style>
+</head>
+<body>
+    <div class="nav-links">
+        <a href="/monitor.html">Monitor</a>
+        <a href="/graph.html">Graf</a>
+        <a href="/lexikon.html">Lexikón</a>
+    </div>
+
+    <div class="glass-panel">
+        <div class="header-stats">
+            <div class="stat-box">R0 (Tiky): <span id="r0">0</span></div>
+            <div class="stat-box">IPS (Výkon): <span id="ips">0</span></div>
+        </div>
+
+        <div id="chat"></div>
+
+        <div class="input-area">
+            <input type="text" id="cmd" placeholder="Odošli signál do jadra..." onkeypress="if(event.key === 'Enter') execute()">
+            <button onclick="execute()">ODOSLAŤ</button>
+        </div>
+    </div>
+
+    <script>
+        async function execute() {
+            const input = document.getElementById('cmd');
+            const cmd = input.value.trim();
+            if (!cmd) return;
+
+            input.value = '';
+            input.focus(); 
+            
+            // --- OPRAVA PRE V16: PRECHOD Z GET NA POST ---
+            await fetch(`${window.location.origin}/core-api/execute`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cmd: cmd })
+            });
+            
+            refresh();
+        }
+
+        async function refresh() {
+            try {
+                const response = await fetch(`${window.location.origin}/core-api/status`);
+                const data = await response.json();
+
+                // Dvojitá kontrola pre case-sensitivity (R0 / r0)
+                document.getElementById('r0').innerText = data.registers.R0 || data.registers.r0 || 0;
+                document.getElementById('ips').innerText = data.ips;
+
+                const chatArea = document.getElementById('chat');
+                const chatHtml = data.chat.map(m => {
+                    let formattedMsg = m.msg;
+                    
+                    // Vizuálna izolácia JSON matíc, aby nenarúšali čistotu chatu
+                    if(formattedMsg.includes('"term":')) {
+                        formattedMsg = `<span style="opacity:0.6; font-size:0.8em; color: var(--accent-lili);">[Sémantická Matrica V16 Analyzovaná]</span><br>` + formattedMsg.replace(/\n/g, '<br>');
+                    } else {
+                        formattedMsg = formattedMsg.replace(/\n/g, '<br>');
+                    }
+
+                    return `
+                        <div class="msg ${m.user.toLowerCase()}">
+                            <small>${m.timestamp || ''} | ${m.user}</small>
+                            ${formattedMsg}
+                        </div>
+                    `;
+                }).join('');
+
+                if (chatArea.innerHTML !== chatHtml) {
+                    chatArea.innerHTML = chatHtml;
+                    chatArea.scrollTop = chatArea.scrollHeight;
+                }
+            } catch (error) {
+                console.error("Chyba synchronizácie rozhrania:", error);
+            }
+        }
+
+        setInterval(refresh, 1000);
+        refresh();
+    </script>
+</body>
+</html>
