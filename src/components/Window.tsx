@@ -46,7 +46,7 @@ export const Window: React.FC<WindowProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const isMobile = window.innerWidth < 768;
+  const isMobile = window.innerWidth < 1024;
 
   return (
     <motion.div
@@ -102,19 +102,34 @@ export const Window: React.FC<WindowProps> = ({
             : 'h-14 bg-white/30 dark:bg-white/5 border-b border-white/10 cursor-grab active:cursor-grabbing'
         }`}>
         
-        {/* iOS-Style Left Side (App Branding) */}
-        <div className="flex items-center gap-3 w-1/3">
-          <div className="w-8 h-8 flex items-center justify-center [&>svg]:w-5 [&>svg]:h-5 p-1.5 glass-panel rounded-xl shadow-inner">
-            {app?.icon}
+        {/* iOS-Style Left Side (Close Button & App Branding) */}
+        <div className="flex items-center gap-4 w-1/3">
+          {!isMobile && (
+            <button 
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() => toggleWindow(id)} 
+              className="w-7 h-7 flex items-center justify-center rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"
+              title="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 flex items-center justify-center [&>svg]:w-5 [&>svg]:h-5 p-1.5 glass-panel rounded-xl shadow-inner">
+              {app?.icon}
+            </div>
+            <span className="text-sm font-bold text-gray-900 dark:text-white/90 tracking-tight hidden sm:block truncate">
+              {app?.name}
+            </span>
           </div>
-          <span className="text-sm font-bold text-gray-900 dark:text-white/90 tracking-tight hidden sm:block truncate">
-            {app?.name}
-          </span>
         </div>
         
-        {/* Center: Dynamic Island Interaction Handle */}
+        {/* Center: Window Manager Grip / Interaction Handle */}
         <div className="flex-1 flex justify-center items-center h-full">
-          <div className={`h-1 w-12 bg-white/20 rounded-full ${isMobile ? 'opacity-40' : 'opacity-0'}`} />
+          <div className="flex items-center gap-2 px-3 py-1 bg-black/5 dark:bg-white/5 rounded-full border border-white/10 opacity-60 hover:opacity-100 transition-opacity">
+            <Grip className="w-3.5 h-3.5 text-gray-400" />
+            <div className={`h-1 w-8 bg-current rounded-full ${isMobile ? 'opacity-40' : 'opacity-20'}`} />
+          </div>
         </div>
 
         {/* Right Side: Navigation controls */}
@@ -136,14 +151,6 @@ export const Window: React.FC<WindowProps> = ({
                 title={state.isMaximized ? "Restore" : "Maximize"}
               >
                 <Square className="w-3 h-3" />
-              </button>
-              <button 
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={() => toggleWindow(id)} 
-                className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-500/80 hover:text-white text-gray-500 dark:text-gray-400 transition-colors"
-                title="Close"
-              >
-                <X className="w-4 h-4" />
               </button>
             </div>
           ) : (

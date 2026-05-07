@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, query, where, limit } from 'firebase/firestore';
+import { onSnapshot } from '../firebase';
 import { db, auth } from '../firebase';
 import { Users, X } from 'lucide-react';
 
@@ -15,7 +16,8 @@ export const ActiveUsersWidget: React.FC<ActiveUsersWidgetProps> = ({ onClose })
     if (!auth.currentUser) return;
     const q = query(
       collection(db, 'users'),
-      where('isOnline', '==', true)
+      where('isOnline', '==', true),
+      limit(10)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {

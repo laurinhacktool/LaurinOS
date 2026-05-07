@@ -12,6 +12,7 @@ import telegram_bridge
 import tunnel_manager
 import bios_logic
 import gemini_bridge
+import ollama_bridge
 import quantummind_logic
 import semantic_parser
 import agent_dispatcher
@@ -57,6 +58,55 @@ def load_persona():
             try: return json.load(f)
             except: return {}
     return {}
+
+def ask_ai(uefi, prompt, force_model=None):
+    """
+    Univerzálny AI router, ktorý prepína medzi Gemini a Ollama s fallbackom.
+    """
+    provider = uefi.config.get("preferred_provider", "gemini")
+    
+    if provider == "local":
+        model_path = uefi.config.get("local_model_path", "")
+        if model_path:
+            try:
+                import urllib.request
+                import json
+                req = urllib.request.Request(
+                    "http://127.0.0.1:3000/api/local-chat",
+                    data=json.dumps({"prompt": prompt, "model_path": model_path}).encode('utf-8'),
+                    headers={'Content-Type': 'application/json'}
+                )
+                with urllib.request.urlopen(req, timeout=120) as response:
+                    res_body = response.read().decode('utf-8')
+                    data = json.loads(res_body)
+                    if "response" in data:
+                        return data["response"]
+                    else:
+                        return f"⚠️ Lokálny model API chyba: {data.get('error', 'Neznáma chyba')}"
+            except Exception as e:
+                print(f"[Core] Chyba pri lokálnom modeli ({model_path}): {e}")
+                # Fallback to Gemini handled below...
+        else:
+            print("[Core] Žiadna cesta k lokálnemu modelu, fallback na Gemini...")
+
+    # Ak je preferovaná Ollama, skúsime ju
+    if provider == "ollama" or provider == "local":
+        model = uefi.config.get("custom_model") or "llama3"
+        url = uefi.config.get("custom_api_url") or "http://localhost:11434"
+        response = ollama_bridge.ask_ollama(prompt, model=model, url=url)
+        
+        # Ak Ollama vrátila chybu (začína varovným emoji), skúsime fallback na Gemini
+        if response.startswith("⚠️"):
+            print(f"[Core] Ollama nedostupná, aktivujem Fallback na Gemini...")
+            api_key = uefi.config.get("gemini_api_key") or os.environ.get("GEMINI_API_KEY")
+            fallback_response = ask_gemini(api_key, prompt, force_model=force_model)
+            return f"{response}\n\n[SYSTEM FALLBACK: Gemini 1.5 Flash]\n{fallback_response}"
+        
+        return response
+    
+    # Štandardné Gemini
+    api_key = uefi.config.get("gemini_api_key") or os.environ.get("GEMINI_API_KEY")
+    return ask_gemini(api_key, prompt, force_model=force_model)
 
 def ask_gemini(api_key, prompt, retries=5, force_model=None):
     global LAST_API_CALL
@@ -150,8 +200,8 @@ def generate_gemini_fallback_response(api_key, shared_state, uefi, prompt, req_u
     )
     
     full_prompt = f"{system_context}\n\nHistória konverzácie:\n{context_str}\nUžívateľ ({req_user}): {prompt}"
-    # Vynútené použitie PRO AI modelu podľa požiadavky
-    reply = ask_gemini(api_key, full_prompt)
+    # Použitie univerzálneho routera namiesto fixného Gemini
+    reply = ask_ai(uefi, full_prompt)
     
     if reply.strip().startswith("```"):
         reply = reply.replace("```json", "").replace("```", "").strip()

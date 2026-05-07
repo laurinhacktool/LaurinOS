@@ -16,6 +16,7 @@ import tunnel_manager
 import bios_logic
 import fcv_kernel
 import lcs_kernel
+import predator_brain
 
 # --- KONFIGURÁCIA ---
 BRAND = "laurin-lili_v20.26.04.30" # Match the new kernel style
@@ -467,7 +468,24 @@ class LaurinOS(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({"status": "error", "message": str(e)}).encode())
             return
 
-        if parsed.path in ['/core-api/execute', '/core-api/chat']:
+        elif parsed.path == '/core-api/predator/analyze':
+            try:
+                length = int(self.headers.get('Content-Length'))
+                post_data = json.loads(self.rfile.read(length).decode('utf-8'))
+                raw_data = post_data.get('raw_data', '')
+                filename = post_data.get('filename', 'unknown.xml')
+                
+                result = predator_brain.predator_brain.analyze(raw_data, filename)
+                
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps(result).encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write(str(e).encode('utf-8'))
+        elif parsed.path in ['/core-api/execute', '/core-api/chat']:
             try:
                 content_len = int(self.headers.get('Content-Length', 0))
                 if content_len > 0:

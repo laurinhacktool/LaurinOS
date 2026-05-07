@@ -71,12 +71,22 @@ export const KernelLogsApp: React.FC = () => {
   };
 
   useEffect(() => {
-    // Initial fetch
-    fetchLogs();
+    let isMounted = true;
+    let pollTimer: NodeJS.Timeout;
 
-    // Poll for new logs every 2 seconds
-    const interval = setInterval(fetchLogs, 2000);
-    return () => clearInterval(interval);
+    const pollLogs = async () => {
+      if (!isMounted) return;
+      await fetchLogs();
+      if (isMounted) {
+        pollTimer = setTimeout(pollLogs, 2000);
+      }
+    };
+
+    pollLogs();
+    return () => {
+      isMounted = false;
+      clearTimeout(pollTimer);
+    };
   }, []);
 
   useEffect(() => {

@@ -83,7 +83,7 @@ def call_custom_api(custom_api_url, custom_api_key, custom_model, prompt):
     except Exception as e:
         return f"Lili (Custom API Chyba): Detaily: {str(e)[:50]}"
 
-def call_local_api(prompt):
+def call_local_api(prompt, temp=0.7, top_p=0.9, max_tokens=2048):
     # Skúsime bežné porty: Ollama (11434), LM Studio (1234), Llama.cpp (8080)
     ports = [11434, 1234, 8080]
     last_err = ""
@@ -97,7 +97,9 @@ def call_local_api(prompt):
                 {"role": "system", "content": "Si asistent LaurinOS (jadro Lili)."},
                 {"role": "user", "content": prompt}
             ],
-            "temperature": 0.7
+            "temperature": temp,
+            "max_tokens": max_tokens,
+            "top_p": top_p
         }).encode('utf-8')
         
         try:
@@ -117,7 +119,9 @@ def ask_gemini(api_key, prompt, retries=1, force_model=None):
     custom_api_key = ""
     custom_model = ""
     preferred_provider = "gemini"
-    local_model_path = ""
+    local_model_temp = 0.7
+    local_model_max_tokens = 2048
+    local_model_top_p = 0.9
     
     try:
         if os.path.exists("config.json"):
@@ -128,6 +132,9 @@ def ask_gemini(api_key, prompt, retries=1, force_model=None):
                 custom_model = cfg.get("custom_model", "")
                 preferred_provider = cfg.get("preferred_provider", "gemini")
                 local_model_path = cfg.get("local_model_path", "")
+                local_model_temp = cfg.get("local_model_temp", 0.7)
+                local_model_max_tokens = cfg.get("local_model_max_tokens", 2048)
+                local_model_top_p = cfg.get("local_model_top_p", 0.9)
                 # Prioritize key from config.json if not provided or placeholder
                 if not api_key or api_key in ["MY_GEMINI_API_KEY", "undefined", "null", ""]:
                    api_key = cfg.get("gemini_api_key", "")
@@ -137,7 +144,7 @@ def ask_gemini(api_key, prompt, retries=1, force_model=None):
     # ROUTING BASED ON PREFERRED PROVIDER
     if preferred_provider == "local":
         log_to_core(f"KERNEL BOOT: Local Model Authority Active ({local_model_path or 'default'})")
-        return call_local_api(prompt)
+        return call_local_api(prompt, temp=local_model_temp, top_p=local_model_top_p, max_tokens=local_model_max_tokens)
     
     if preferred_provider == "custom" and custom_api_url and custom_api_key and custom_model:
         log_to_core(f"KERNEL BOOT: Custom API Authority Active ({custom_model})")

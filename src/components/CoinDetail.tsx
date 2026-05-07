@@ -36,7 +36,7 @@ export const CoinDetail: React.FC<CoinDetailProps> = ({ name, symbol, balance, p
       <div className="h-16 w-full mt-2 relative">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data}>
-            <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} dot={false} isAnimationActive={false} />
             <Tooltip 
               contentStyle={{ backgroundColor: 'rgba(17, 17, 17, 0.8)', backdropFilter: 'blur(20px)', borderColor: 'rgba(255, 255, 255, 0.1)', fontSize: '12px' }}
               itemStyle={{ color: '#fff' }}

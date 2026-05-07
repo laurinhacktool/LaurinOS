@@ -15,6 +15,7 @@ interface NetworkGraphProps {
   height?: number;
   onNodeClick?: (node: any) => void;
   onNodeInspect?: (node: any) => void;
+  autoZoomRefresh?: boolean;
 }
 
 interface GraphNode {
@@ -50,7 +51,7 @@ interface GraphLink {
 
 // 2D Drawing helpers
 const drawFractalCloud = (ctx: CanvasRenderingContext2D, width: number, height: number, globalScale: number, time: number) => {
-  const density = Math.min(2000, Math.max(500, 1000 / globalScale));
+  const density = Math.min(300, Math.max(100, 500 / globalScale));
   const seed = 42;
   const rng = (i: number) => {
     const x = Math.sin(i + seed) * 10000;
@@ -60,25 +61,22 @@ const drawFractalCloud = (ctx: CanvasRenderingContext2D, width: number, height: 
   const pulse = Math.sin(time / 1000) * 0.5 + 0.5;
 
   ctx.save();
-  ctx.globalAlpha = Math.min(0.4, (0.15 + pulse * 0.1) / globalScale);
+  ctx.globalAlpha = Math.min(0.2, (0.1 + pulse * 0.1) / globalScale);
   ctx.fillStyle = '#10b981';
 
+  const sScale = 1 / globalScale;
   for (let i = 0; i < density; i++) {
     const x = (rng(i * 1.1) - 0.5) * width * 5;
     const y = (rng(i * 1.2) - 0.5) * height * 5;
-    const size = rng(i * 1.3) * (1.5 + pulse * 0.5);
+    const size = rng(i * 1.3) * (1.5 + pulse * 0.5) * sScale;
     
-    ctx.beginPath();
-    ctx.arc(x, y, size / globalScale, 0, 2 * Math.PI);
-    ctx.fill();
+    ctx.fillRect(x, y, size, size);
     
-    // Occasional "active" flashes
     if (rng(i * 1.4) > 0.98) {
       ctx.save();
       ctx.globalAlpha = (0.4 + pulse * 0.4) / globalScale;
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = '#10b981';
-      ctx.fill();
+      ctx.fillStyle = '#10b981';
+      ctx.fillRect(x - size, y - size, size * 3, size * 3);
       ctx.restore();
     }
   }
@@ -189,7 +187,8 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
   width = 800, 
   height = 600,
   onNodeClick,
-  onNodeInspect
+  onNodeInspect,
+  autoZoomRefresh
 }) => {
   const fgRef = useRef<any>(null);
   const [localGraphData, setLocalGraphData] = useState<{ nodes: GraphNode[], links: GraphLink[] }>({ nodes: [], links: [] });
@@ -198,7 +197,6 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [neighbors, setNeighbors] = useState<Set<string>>(new Set());
   const [currentScale, setCurrentScale] = useState(1.0);
-  const [graphTime, setGraphTime] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -210,17 +208,6 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
       n.id.toLowerCase().includes(q)
     );
   }, [localGraphData.nodes, searchQuery]);
-
-  useEffect(() => {
-    let animationFrame: number;
-    const animate = (time: number) => {
-      setGraphTime(time);
-      (window as any).graphTime = time;
-      animationFrame = requestAnimationFrame(animate);
-    };
-    animationFrame = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationFrame);
-  }, []);
 
   useEffect(() => {
     const unsubscribe = hardwareBridge.subscribe(() => {
@@ -452,6 +439,27 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
       }, 500);
     }
   }, [isInitialized, generateData]);
+
+  useEffect(() => {
+    if (autoZoomRefresh && isInitialized) {
+      const interval = setInterval(() => {
+        if (fgRef.current) {
+          const currentData = fgRef.current.graphData();
+          if (currentData && currentData.nodes && currentData.nodes.length > 0) {
+            const highGravityNode = currentData.nodes.reduce((max: any, n: any) => ((n.val || 0) > (max.val || 0)) ? n : max, currentData.nodes[0]);
+            if (highGravityNode && highGravityNode.x !== undefined && highGravityNode.y !== undefined) {
+              fgRef.current.centerAt(highGravityNode.x, highGravityNode.y, 1000);
+            }
+          }
+
+          const currentZoom = fgRef.current.zoom();
+          fgRef.current.zoom(currentZoom * 0.5, 1000); 
+        }
+      }, 3140);
+      
+      return () => clearInterval(interval);
+    }
+  }, [autoZoomRefresh, isInitialized]);
 
   const handleZoom = useCallback((factor: number) => {
     if (fgRef.current) {
@@ -771,15 +779,16 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
           setNeighbors(new Set());
         }}
         onRenderFramePre={(ctx, globalScale) => {
-          drawFractalCloud(ctx, width, height, globalScale, graphTime);
+          drawFractalCloud(ctx, width, height, globalScale, performance.now());
         }}
         onZoom={({ k }) => setCurrentScale(k)}
         enableNodeDrag={false} // Disable dragging for more stability
         enableZoomInteraction={true}
         enablePanInteraction={true}
-        cooldownTicks={60}
-        d3AlphaDecay={0.06}
-        d3VelocityDecay={0.5}
+        warmupTicks={20}
+        cooldownTicks={10}
+        d3AlphaDecay={0.1}
+        d3VelocityDecay={0.4}
       />
       
       {/* Legend */}

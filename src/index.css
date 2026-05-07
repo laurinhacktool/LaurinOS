@@ -93,6 +93,23 @@ body {
 }
 
 /* Custom scrollbar for technical feel */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -158,6 +175,9 @@ input::placeholder {
   .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
   .pl-safe { padding-left: env(safe-area-inset-left, 0px); }
   .pr-safe { padding-right: env(safe-area-inset-right, 0px); }
+  
+  .mt-safe { margin-top: env(safe-area-inset-top, 0px); }
+  .mb-safe { margin-bottom: env(safe-area-inset-bottom, 0px); }
 
   .glass-panel { 
       background: rgba(30, 41, 59, 0.45); 

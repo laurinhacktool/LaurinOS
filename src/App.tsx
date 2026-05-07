@@ -1,23 +1,32 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Battery, BatteryCharging, CloudSun, X, Minus, Square, Lock, Loader2, LogOut, MessageSquare, BarChart2, Shield, Zap, Code, Terminal, MessageCircle, LayoutGrid, Activity, Radar, Grid, Maximize2, Users, Search, Brain, Clock } from 'lucide-react';
+import { 
+  Battery, BatteryCharging, CloudSun, X, Minus, Square, Lock, Loader2, 
+  LogOut, MessageSquare, BarChart2, Shield, Zap, Code, Terminal, 
+  MessageCircle, LayoutGrid, Activity, Radar, Grid, Maximize2, 
+  Users, Search, Brain, Clock, FileCode, Trash2, Settings, Share, Coins,
+  Database, RefreshCw, Cpu, Sun, Moon, ShieldAlert, Globe, Radio
+} from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { NetworkVisualizer } from './components/NetworkVisualizer';
 import LauCoinApp from './LauCoinApp';
 import { LaurinChatApp } from './components/LaurinChatApp';
 import BeCreativeApp from './BeCreativeApp';
 import GenericApp from './GenericApp';
+import { SoulMapApp } from './components/SoulMapApp';
 import { MessengerApp } from './components/MessengerApp';
 import { SystemInfoApp } from './components/SystemInfoApp';
 import { NetworkStatsChart } from './components/NetworkStatsChart';
 import { KernelLogsApp } from './components/KernelLogsApp';
 import { Window } from './components/Window';
+import { PredatorApp } from './components/PredatorApp';
 import { OSINTApp } from './components/OSINTApp';
 import { ActiveUsersWidget } from './components/ActiveUsersWidget';
-import { auth, db, onAuthStateChanged } from './firebase';
 import { AuthScreen } from './components/AuthScreen';
-import { doc, getDoc, setDoc, serverTimestamp, collection, query, where, onSnapshot } from 'firebase/firestore';
-import { SNAPPY_SPRING } from './constants';
+import { OffgridApp } from './components/OffgridApp';
+import { doc, getDoc, getDocs, setDoc, serverTimestamp, collection, query, where, getCountFromServer, limit } from 'firebase/firestore';
+import { auth, db, onAuthStateChanged, onSnapshot } from './firebase';
+import { SNAPPY_SPRING, SMOOTH_SPRING } from './constants';
 
 interface AppInfo {
   id: string;
@@ -46,7 +55,6 @@ interface DynamicIslandContentProps {
   isExpanding: boolean;
   expansionProgress: number;
   ips: number;
-  ticks: number;
 }
 
 const DynamicIslandContent = ({
@@ -58,10 +66,11 @@ const DynamicIslandContent = ({
   setIsSubIslandOpen,
   isExpanding,
   expansionProgress,
-  ips,
-  ticks
+  ips
 }: DynamicIslandContentProps) => (
-  <div className="flex items-center justify-center h-full w-full relative">
+  <div 
+    className="flex items-center justify-center h-10 w-full relative group shrink-0"
+  >
     <AnimatePresence>
       {isRateLimited && (
         <motion.div
@@ -77,12 +86,6 @@ const DynamicIslandContent = ({
     </AnimatePresence>
     <div className="flex items-center gap-3">
       {/* Kernel Activity (Heartbeat) */}
-      <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-full">
-        <div className={`w-1.5 h-1.5 rounded-full ${ips > 0 ? 'bg-blue-500 animate-pulse shadow-[0_0_8px_#3b82f6]' : 'bg-gray-700'}`} />
-        <span className="text-[9px] font-bold text-blue-400/80 font-mono tracking-tighter">
-          {ips > 999 ? `${(ips/1000).toFixed(1)}k` : ips}
-        </span>
-      </div>
 
       <div 
         className="flex items-center gap-4 transition-all duration-500"
@@ -90,58 +93,51 @@ const DynamicIslandContent = ({
           textShadow: `0 0 8px ${activeMaximizedApp?.config.color || '#ffffff'}88`
         } : {}}
       >
-        {/* 1. Time (Visible on desktop, moves to sub-island when maximized) */}
-        {!isAnyMaximized && (
-          <motion.div 
-            key="desktop-time"
-            layoutId="system-time"
-            className="tracking-widest font-bold text-[10px] w-[70px] text-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            {time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second: '2-digit'})}
-          </motion.div>
-        )}
+        {/* 1. Time - Left Side */}
+        <motion.div 
+          key="system-time-display"
+          layoutId="system-time"
+          className="tracking-widest font-black text-sm min-w-[60px] text-right transform -translate-x-[15px]"
+        >
+          {time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+        </motion.div>
         
-        {/* 2. L (Toggle) - Hidden when maximized */}
-        {!isAnyMaximized && (
-          <div 
-            onClick={() => setIsSubIslandOpen(!isSubIslandOpen)}
-            className={`text-lg font-black px-1 cursor-pointer transition-colors drop-shadow-[0_0_8px_rgba(168,85,247,0.5)] ${isSubIslandOpen ? 'text-purple-500' : 'text-white hover:text-purple-400'}`}
+        {/* 2. Notch Space / Physical Cutout Wrapper - Fixed Middle Area */}
+        <div className="w-[80px] h-4 relative flex items-center justify-center mx-1">
+          {isExpanding && (
+             <motion.div 
+               layoutId="pulse-ring"
+               className="absolute inset-0 bg-purple-500/20 rounded-full animate-ping" 
+             />
+          )}
+        </div>
+
+        {/* 3. Indicators (Graph, Logo) - Right Side */}
+        <div className="flex items-center gap-3 justify-end min-w-[80px]">
+          {!isSubIslandOpen && (
+            <motion.div 
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="hidden md:flex transform scale-[0.8] origin-right"
+            >
+              <NetworkVisualizer />
+            </motion.div>
+          )}
+
+          <motion.div 
+            layout
+            transition={SMOOTH_SPRING}
+            animate={{
+              scale: isSubIslandOpen ? 1.15 : 1,
+              filter: isSubIslandOpen ? 'drop-shadow(0 0 10px rgba(168,85,247,0.8)) brightness(1.25)' : 'drop-shadow(0 0 0px rgba(168,85,247,0)) brightness(1)'
+            }}
+            className={`text-sm font-black transform translate-x-[2px]`}
           >
-            L
-          </div>
-        )}
-
-        {/* 3. Notch Space */}
-        <div className="w-16 h-4" />
-
-        {/* 4. Date */}
-        <div className="text-[10px] opacity-60 tracking-wider whitespace-nowrap">{time.toLocaleDateString('sk-SK', { day: '2-digit', month: '2-digit', year: 'numeric' })}</div>
-      </div>
-
-      {/* Kernel Ticks */}
-      <div className="hidden md:flex items-center gap-1.5 px-2 py-0.5 bg-purple-500/10 border border-purple-500/20 rounded-full">
-        <span className="text-[8px] text-purple-400/60 font-bold uppercase tracking-widest">Ticks</span>
-        <span className="text-[9px] font-bold text-purple-400/80 font-mono tracking-tighter">
-          {ticks > 999999 ? `${(ticks/1000000).toFixed(1)}M` : ticks > 999 ? `${(ticks/1000).toFixed(1)}k` : ticks}
-        </span>
+            <span className="text-purple-400">Laurin</span><span className="text-white">OS</span>
+          </motion.div>
+        </div>
       </div>
     </div>
-
-    {isExpanding && (
-      <div className="flex items-center gap-2 px-2 border-x border-white/10 mx-1">
-        <div className="w-12 h-1 bg-white/10 rounded-full overflow-hidden">
-          <motion.div 
-            className="h-full bg-purple-500"
-            initial={{ width: 0 }}
-            animate={{ width: `${expansionProgress}%` }}
-          />
-        </div>
-        <span className="text-[8px] font-bold text-purple-400">{expansionProgress}%</span>
-      </div>
-    )}
   </div>
 );
 
@@ -162,6 +158,8 @@ interface SubIslandContentProps {
   toggleFullscreen: () => void;
   isFullscreen: boolean;
   isStandalone: boolean;
+  ips: number;
+  activeNodesCount: number;
 }
 
   const SubIslandContent = ({
@@ -179,81 +177,142 @@ interface SubIslandContentProps {
   setShowSystemHub,
   toggleFullscreen,
   isFullscreen,
-  isStandalone
+  isStandalone,
+  ips,
+  activeNodesCount
 }: SubIslandContentProps & { setShowSystemHub: (val: boolean) => void }) => (
-  <div className="glass-panel rounded-full px-4 py-2 flex items-center gap-4 text-xs font-medium text-slate-200 transition-all duration-300">
-    {/* 1. Brain */}
-    <button 
-      onClick={() => setShowExpansionConfirm(true)}
-      disabled={isExpanding}
-      className={`transition-all flex items-center gap-1 ${isExpanding ? 'text-purple-400' : 'text-gray-400 hover:text-purple-300'}`}
-      title="Spustiť expanziu sémantickej siete"
-    >
-      <LucideIcons.Brain className={`w-3.5 h-3.5 ${isExpanding ? 'animate-spin' : ''}`} />
-    </button>
+  <div className="relative overflow-hidden w-[280px] md:w-[340px]">
+    <div className="absolute inset-0 bg-blue-500/5 blur-3xl rounded-full" />
+    <div className="relative glass-panel rounded-[2.5rem] p-5 pb-4 border border-white/10 shadow-2xl">
+      {/* Dynamic Island Expanded Stats */}
+      <div className="flex items-center justify-center gap-6 mb-5 mt-1">
+        <div className="flex flex-col items-center">
+            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-full mb-1">
+                <div className={`w-1.5 h-1.5 rounded-full ${ips > 0 ? 'bg-blue-500 animate-pulse shadow-[0_0_8px_#3b82f6]' : 'bg-gray-700'}`} />
+                <span className="text-[10px] font-bold text-blue-400 font-mono tracking-tighter">
+                  {ips > 999 ? `${(ips/1000).toFixed(1)}k` : ips}
+                </span>
+            </div>
+            <span className="text-[8px] font-bold text-gray-500 uppercase tracking-widest">IPS</span>
+        </div>
+        
+        <div className="flex flex-col items-center">
+            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-1">
+                <div className={`w-1.5 h-1.5 rounded-full ${activeNodesCount > 0 ? 'bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]' : 'bg-gray-700'}`} />
+                <span className="text-[10px] font-bold text-emerald-400 font-mono tracking-tighter">
+                  {activeNodesCount > 999 ? `${(activeNodesCount/1000).toFixed(1)}k` : activeNodesCount}
+                </span>
+            </div>
+            <span className="text-[8px] font-bold text-gray-500 uppercase tracking-widest">Nodes</span>
+        </div>
+      </div>
 
-    {!isStandalone && (
-      <button 
-        onClick={toggleFullscreen}
-        className={`transition-all ${isFullscreen ? 'text-blue-400' : 'text-gray-400 hover:text-white'}`}
-        title={isFullscreen ? "Ukončiť Fullscreen" : "Vstúpiť do Fullscreen"}
+      <div className="grid grid-cols-4 gap-4">
+      {/* 1. Brain/Expansion */}
+      <motion.button 
+        whileTap={{ scale: 0.9 }}
+        onClick={() => setShowExpansionConfirm(true)}
+        disabled={isExpanding}
+        className="flex flex-col items-center gap-2 group"
       >
-        {isFullscreen ? <LucideIcons.Minimize2 className="w-3.5 h-3.5" /> : <LucideIcons.Maximize2 className="w-3.5 h-3.5" />}
-      </button>
-    )}
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isExpanding ? 'bg-purple-500/40 text-white animate-spin' : 'bg-white/5 group-hover:bg-purple-500/20 text-gray-400 group-hover:text-purple-400'}`}>
+          <Brain className="w-6 h-6" />
+        </div>
+        <span className="text-[10px] font-bold opacity-60">BRAIN</span>
+      </motion.button>
 
-    {/* 2. Messenger */}
-    <button 
-      onClick={() => toggleWindow('messenger')}
-      className={`relative text-gray-400 hover:text-white transition-colors ${openWindows.includes('messenger') && !windowStates['messenger']?.isMinimized ? 'text-purple-400' : ''}`}
-      title="Messenger"
-    >
-      <MessageCircle className="w-3.5 h-3.5" />
-      {unreadCount > 0 && (
-        <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[8px] font-bold w-3.5 h-3.5 flex items-center justify-center rounded-full shadow-lg border border-[#0a0a0a]">
-          {unreadCount > 9 ? '9+' : unreadCount}
-        </span>
+      {/* 2. Fullscreen */}
+      {!isStandalone && (
+        <motion.button 
+          whileTap={{ scale: 0.9 }}
+          onClick={toggleFullscreen}
+          className="flex flex-col items-center gap-2 group"
+        >
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isFullscreen ? 'bg-blue-500/40 text-white' : 'bg-white/5 group-hover:bg-blue-500/20 text-gray-400 group-hover:text-blue-400'}`}>
+            <Maximize2 className="w-6 h-6" />
+          </div>
+          <span className="text-[10px] font-bold opacity-60">FULL</span>
+        </motion.button>
       )}
-    </button>
 
-    {/* 3. Free space with separator */}
-    <div className="w-px h-3 bg-white/20 mx-1" />
+      {/* 3. Messenger */}
+      <motion.button 
+        whileTap={{ scale: 0.9 }}
+        onClick={() => toggleWindow('messenger')}
+        className="flex flex-col items-center gap-2 group relative"
+      >
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${openWindows.includes('messenger') ? 'bg-purple-500/40 text-white' : 'bg-white/5 group-hover:bg-purple-500/20 text-gray-400 group-hover:text-purple-400'}`}>
+          <MessageCircle className="w-6 h-6" />
+        </div>
+        <span className="text-[10px] font-bold opacity-60">CHAT</span>
+        {unreadCount > 0 && (
+          <span className="absolute top-0 right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-lg border-2 border-[#1a1a1a]">
+            {unreadCount}
+          </span>
+        )}
+      </motion.button>
 
-    {/* 4. System Hub */}
-    <button 
-      onClick={() => setShowSystemHub(true)}
-      className="text-gray-400 hover:text-blue-400 transition-colors"
-      title="Systémové Jadro"
-    >
-      <LucideIcons.Settings className="w-3.5 h-3.5" />
-    </button>
+      {/* 4. Settings */}
+      <motion.button 
+        whileTap={{ scale: 0.9 }}
+        onClick={() => setShowSystemHub(true)}
+        className="flex flex-col items-center gap-2 group"
+      >
+        <div className="w-12 h-12 rounded-2xl bg-white/5 group-hover:bg-blue-500/20 text-gray-400 group-hover:text-blue-400 flex items-center justify-center transition-all">
+          <Settings className="w-6 h-6" />
+        </div>
+        <span className="text-[10px] font-bold opacity-60">CORES</span>
+      </motion.button>
 
-    {/* 3.5 Active Users */}
-    <button 
-      onClick={() => setIsActiveUsersVisible(!isActiveUsersVisible)}
-      className={`transition-colors ${isActiveUsersVisible ? 'text-blue-400' : 'text-gray-400 hover:text-blue-300'}`}
-      title="Aktívni používatelia"
-    >
-      <Users className="w-3.5 h-3.5" />
-    </button>
+      {/* 5. Users */}
+      <motion.button 
+        whileTap={{ scale: 0.9 }}
+        onClick={() => setIsActiveUsersVisible(!isActiveUsersVisible)}
+        className="flex flex-col items-center gap-2 group"
+      >
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isActiveUsersVisible ? 'bg-blue-400/40 text-white' : 'bg-white/5 group-hover:bg-blue-400/20 text-gray-400 group-hover:text-blue-300'}`}>
+          <Users className="w-6 h-6" />
+        </div>
+        <span className="text-[10px] font-bold opacity-60">USERS</span>
+      </motion.button>
 
-    {/* 5. Widget */}
-    <button 
-      onClick={() => setIsWidgetVisible(!isWidgetVisible)}
-      className={`transition-colors ${isWidgetVisible ? 'text-green-500' : 'text-gray-400 hover:text-green-400'}`}
-      title="Senzory Widget"
-    >
-      <Activity className="w-3.5 h-3.5" />
-    </button>
+      {/* 6. Widget */}
+      <motion.button 
+        whileTap={{ scale: 0.9 }}
+        onClick={() => setIsWidgetVisible(!isWidgetVisible)}
+        className="flex flex-col items-center gap-2 group"
+      >
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isWidgetVisible ? 'bg-green-500/40 text-green-400' : 'bg-white/5 group-hover:bg-green-500/20 text-gray-400 group-hover:text-green-400'}`}>
+          <Activity className="w-6 h-6" />
+        </div>
+        <span className="text-[10px] font-bold opacity-60">SENSORS</span>
+      </motion.button>
 
-    {/* 6. Logout */}
-    <button 
-      onClick={() => setShowLogoutConfirm(true)}
-      className="text-gray-400 hover:text-red-400 transition-colors"
-      title="Vypnúť"
-    >
-      <LogOut className="w-3.5 h-3.5" />
-    </button>
+      {/* 7. Network */}
+       <motion.button 
+        whileTap={{ scale: 0.9 }}
+        onClick={() => toggleWindow('system')}
+        className="flex flex-col items-center gap-2 group"
+      >
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${openWindows.includes('system') ? 'bg-emerald-500/40 text-white' : 'bg-white/5 group-hover:bg-emerald-500/20 text-gray-400 group-hover:text-emerald-400'}`}>
+          <BarChart2 className="w-6 h-6" />
+        </div>
+        <span className="text-[10px] font-bold opacity-60">MONITOR</span>
+      </motion.button>
+
+      {/* 8. Logout */}
+      <motion.button 
+        whileTap={{ scale: 0.9 }}
+        onClick={() => setShowLogoutConfirm(true)}
+        className="flex flex-col items-center gap-2 group"
+      >
+        <div className="w-12 h-12 rounded-2xl bg-white/5 group-hover:bg-red-500/20 text-gray-400 group-hover:text-red-400 flex items-center justify-center transition-all">
+          <LogOut className="w-6 h-6" />
+        </div>
+        <span className="text-[10px] font-bold opacity-60">EXIT</span>
+      </motion.button>
+      </div>
+    </div>
   </div>
 );
 
@@ -275,6 +334,32 @@ export default function App() {
   }, [theme]);
 
   const [time, setTime] = useState(new Date());
+  const [activeNodesCount, setActiveNodesCount] = useState<number>(0);
+
+  useEffect(() => {
+    // Keep nodes count in sync - optimized to interval instead of real-time onSnapshot to save reads
+    let isMounted = true;
+    const fetchNodesCount = async () => {
+      if (!isMounted) return;
+      try {
+        const countSnap = await getCountFromServer(collection(db, 'nodes'));
+        if (isMounted) setActiveNodesCount(countSnap.data().count);
+      } catch (e) {
+        console.error('Failed to get active nodes count:', e);
+      }
+    };
+    
+    fetchNodesCount(); // initial fetch
+
+    // Refresh every 5 minutes instead of real-time hook
+    const interval = setInterval(fetchNodesCount, 300000); 
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
   const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
   const [isCharging, setIsCharging] = useState(false);
   const [openWindows, setOpenWindows] = useState<string[]>([]);
@@ -341,13 +426,16 @@ export default function App() {
   const [isAuthed, setIsAuthed] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [apps, setApps] = useState<AppInfo[]>([
-    { id: 'laucoin', name: 'LauCoin', icon: <LucideIcons.Coins className="w-10 h-10 text-blue-400" />, prompt: '', hash: '', config: { name: 'LauCoin', description: '', uiType: 'list', color: '#3b82f6' } },
+    { id: 'laucoin', name: 'LauCoin', icon: <Coins className="w-10 h-10 text-blue-400" />, prompt: '', hash: '', config: { name: 'LauCoin', description: '', uiType: 'list', color: '#3b82f6' } },
+    { id: 'SoulMap', name: 'SoulMap', icon: <Brain className="w-10 h-10 text-cyan-400" />, prompt: '', hash: '', config: { name: 'SoulMap', description: 'Network Graph Explorer', uiType: 'dashboard', color: '#22d3ee' } },
     { id: 'lau_chat', name: 'Lau Chat', icon: <Terminal className="w-10 h-10 text-blue-400" />, prompt: '', hash: '', config: { name: 'Lau Chat', description: '', uiType: 'chat', color: '#3b82f6' } },
     { id: 'becreative', name: 'Be Creative', icon: <Zap className="w-10 h-10 text-amber-400" />, prompt: '', hash: '', config: { name: 'Be Creative', description: '', uiType: 'list', color: '#f59e0b' } },
     { id: 'messenger', name: 'Messenger', icon: <MessageCircle className="w-10 h-10 text-purple-400" />, prompt: '', hash: '', config: { name: 'Messenger', description: '', uiType: 'chat', color: '#a855f7' } },
     { id: 'system', name: 'Systémové Centrum', icon: <Activity className="w-10 h-10 text-emerald-400" />, prompt: '', hash: '', config: { name: 'Systémové Centrum', description: 'Monitorovanie sensorov a HW bridge', uiType: 'dashboard', color: '#10b981' } },
     { id: 'kernel', name: 'Kernel Logs', icon: <Terminal className="w-10 h-10 text-slate-400" />, prompt: '', hash: '', config: { name: 'Kernel Logs', description: 'System Kernel Logs', uiType: 'dashboard', color: '#94a3b8' } },
-    { id: 'lookup', name: 'Hacker Lookup', icon: <Search className="w-10 h-10 text-red-500" />, prompt: '', hash: '', config: { name: 'Hacker Lookup', description: 'Global Intelligence Grid', uiType: 'dashboard', color: '#ef4444' } },
+    { id: 'predator', name: 'Endpoint Predator', icon: <Radar className="w-10 h-10 text-orange-500" />, prompt: '', hash: '', config: { name: 'Endpoint Predator', description: 'APK Reverse Engineering & Semantic Extraction', uiType: 'dashboard', color: '#f97316' } },
+    { id: 'osint', name: 'Lau Tracker', icon: <Search className="w-10 h-10 text-red-500" />, prompt: '', hash: '', config: { name: 'Lau Tracker', description: 'Global Hacker DOSSIER Lookup', uiType: 'dashboard', color: '#ef4444' } },
+    { id: 'offgrid', name: 'Offgrid Link', icon: <Radio className="w-10 h-10 text-emerald-500" />, prompt: '', hash: '', config: { name: 'Offgrid Link', description: 'Mesh Network Operator', uiType: 'dashboard', color: '#10b981' } },
   ]);
 
   const islandRef = useRef<HTMLDivElement>(null);
@@ -364,27 +452,48 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    let bmRef: any = null;
+    let cancel = false;
+
     if ((navigator as any).getBattery) {
       (navigator as any).getBattery().then((bm: any) => {
-        setBatteryLevel(Math.round(bm.level * 100));
-        setIsCharging(bm.charging);
-        bm.onlevelchange = () => setBatteryLevel(Math.round(bm.level * 100));
-        bm.onchargingchange = () => setIsCharging(bm.charging);
+        if (cancel) return;
+        bmRef = bm;
+        const update = () => {
+          setBatteryLevel(Math.round(bm.level * 100));
+          setIsCharging(bm.charging);
+        };
+        update();
+        bm.addEventListener('levelchange', update);
+        bm.addEventListener('chargingchange', update);
       });
     }
 
-    // Geolocation permission
+    // Geolocation permission (one-time check)
     navigator.geolocation.getCurrentPosition(
-      () => console.log('Geolocation permission granted'),
-      (err) => console.log('Geolocation permission denied', err)
+      () => {}, 
+      () => {}
     );
 
-    // Network Information API (Signal)
-    if ((navigator as any).connection) {
-      const conn = (navigator as any).connection;
-      console.log('Network type:', conn.effectiveType);
-      conn.onchange = () => console.log('Network changed:', conn.effectiveType);
+    // Network Information API
+    let connRef: any = null;
+    const connection = (navigator as any).connection;
+    if (connection) {
+      connRef = connection;
+      const handleConnChange = () => console.log('Network changed:', connection.effectiveType);
+      connection.addEventListener('change', handleConnChange);
     }
+
+    return () => {
+      cancel = true;
+      if (bmRef) {
+        bmRef.removeEventListener('levelchange', () => {});
+        bmRef.removeEventListener('chargingchange', () => {});
+      }
+      if (connRef) {
+        connRef.removeEventListener('change', () => {});
+      }
+    };
   }, []);
 
   const [isSubIslandOpen, setIsSubIslandOpen] = useState(false);
@@ -395,11 +504,111 @@ export default function App() {
   const [customApiUrl, setCustomApiUrl] = useState('');
   const [customApiKey, setCustomApiKey] = useState('');
   const [customModel, setCustomModel] = useState('');
-  const [preferredProvider, setPreferredProvider] = useState<'gemini' | 'custom' | 'local'>('gemini');
+  const [preferredProvider, setPreferredProvider] = useState<'gemini' | 'custom' | 'local' | 'ollama'>('gemini');
   const [localModelPath, setLocalModelPath] = useState('');
+  const [localModelUrl, setLocalModelUrl] = useState('');
+  const [localModelTemp, setLocalModelTemp] = useState<number>(0.7);
+  const [localModelMaxTokens, setLocalModelMaxTokens] = useState<number>(2048);
+  const [localModelTopP, setLocalModelTopP] = useState<number>(0.9);
   const [seeding, setSeeding] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState<{progress: number, status: string, error?: string} | null>(null);
+  const [apiKeyError, setApiKeyError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (downloading) {
+      interval = setInterval(async () => {
+        try {
+          const res = await fetch('/api/download-status');
+          if (res.ok) {
+            const text = await res.text();
+            if (text && text.trim().startsWith('{')) {
+              try {
+                const data = JSON.parse(text);
+                if (data && typeof data.progress === 'number') {
+                  setDownloadProgress(data);
+                  if (data.status === 'completed' || data.status === 'error') {
+                    setDownloading(false);
+                    if (data.status === 'completed') {
+                      alert("Dolphin Agent úspešne stiahnutý.");
+                      fetchLocalModels();
+                    } else if (data.error) {
+                      alert(`Chyba sťahovania: ${data.error}`);
+                    }
+                  }
+                }
+              } catch (e) {
+                // Ignore parse errors from partially written files
+              }
+            }
+          }
+        } catch (err) {
+          // Suppress noise if it's just a parse error during file write
+          if (err instanceof Error && !err.message.includes('Unexpected')) {
+            console.error("Failed to poll status:", err);
+          }
+        }
+      }, 2000);
+    }
+    return () => clearInterval(interval);
+  }, [downloading]);
 
   const [localModels, setLocalModels] = useState<string[]>([]);
+
+  const fetchLocalModels = async () => {
+    try {
+      const res = await fetch('/api/models');
+      if (res.ok) {
+        const data = await res.json();
+        setLocalModels(data.models || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch local models:", err);
+    }
+  };
+
+  const applyLocalModel = async (modelName: string) => {
+    setLocalModelPath(modelName);
+    setPreferredProvider('local');
+    
+    try {
+      await fetch('/core-api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          gemini_api_key: geminiApiKey,
+          custom_api_url: customApiUrl,
+          custom_api_key: customApiKey,
+          custom_model: customModel,
+          preferred_provider: 'local',
+          local_model_path: modelName, // use passed value not state
+          local_model_temp: localModelTemp,
+          local_model_max_tokens: localModelMaxTokens,
+          local_model_top_p: localModelTopP
+        })
+      });
+      setShowSystemHub(false);
+      alert(`Model ${modelName} bol nastavený.`);
+    } catch (err) {
+      console.error("Failed to apply local model:", err);
+    }
+  };
+
+  const deleteModel = async (filename: string) => {
+    if (!confirm(`Naozaj chcete vymazať model ${filename}?`)) return;
+    try {
+      const res = await fetch(`/api/models/${filename}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchLocalModels();
+        alert("Model vymazaný.");
+      } else {
+        alert("Chyba pri mazaní modelu.");
+      }
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
+  };
 
   const fetchConfig = async () => {
     try {
@@ -412,9 +621,12 @@ export default function App() {
         setCustomModel(data.custom_model || '');
         setPreferredProvider(data.preferred_provider || 'gemini');
         setLocalModelPath(data.local_model_path || '');
+        setLocalModelTemp(data.local_model_temp ?? 0.7);
+        setLocalModelMaxTokens(data.local_model_max_tokens ?? 2048);
+        setLocalModelTopP(data.local_model_top_p ?? 0.9);
         
-        // Simulating file check for common uploaded models
-        setLocalModels(['dolphin.gguf', 'llama3.gguf', 'mistral.gguf'].filter(m => data.local_model_path.includes(m)));
+        // Fetch real models
+        fetchLocalModels();
       } else {
         const text = await response.text();
         console.error("Failed to fetch config. Status:", response.status, "Body:", text);
@@ -428,7 +640,23 @@ export default function App() {
     }
   };
 
+  const validateGeminiKey = (key: string) => {
+    if (!key) return "Kľúč nemôže byť prázdny";
+    if (!key.startsWith('AIzaSy')) return "Neplatný formát kľúča (musí začínať na AIzaSy)";
+    if (key.length < 38 || key.length > 45) return "Neplatná dĺžka kľúča";
+    return null;
+  };
+
   const saveSettings = async () => {
+    if (preferredProvider === 'gemini') {
+      const error = validateGeminiKey(geminiApiKey);
+      if (error) {
+        setApiKeyError(error);
+        return;
+      }
+    }
+    
+    setApiKeyError(null);
     try {
       await fetch('/core-api/config', {
         method: 'POST',
@@ -439,12 +667,40 @@ export default function App() {
           custom_api_key: customApiKey,
           custom_model: customModel,
           preferred_provider: preferredProvider,
-          local_model_path: localModelPath
+          local_model_path: localModelPath,
+          local_model_temp: localModelTemp,
+          local_model_max_tokens: localModelMaxTokens,
+          local_model_top_p: localModelTopP
         })
       });
+      // Update local storage or trigger a refresh if needed
       setShowSystemHub(false);
     } catch (err) {
       console.error("Failed to save settings:", err);
+    }
+  };
+
+  const downloadModel = async () => {
+    setDownloading(true);
+    setDownloadProgress({ progress: 0, status: 'starting' });
+    try {
+      const res = await fetch('/api/download-model', { 
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          url: localModelUrl || undefined,
+          filename: localModelPath || undefined
+        })
+      });
+      if (!res.ok) {
+        alert("Chyba pri spúšťaní sťahovania.");
+        setDownloading(false);
+      }
+    } catch (err) {
+      console.error("Download failed:", err);
+      setDownloading(false);
     }
   };
 
@@ -563,8 +819,11 @@ export default function App() {
     return () => clearInterval(interval);
   }, [currentUser]);
 
-  // Global Kernel Polling
+  // Global Kernel Polling - Optimized for stability
   useEffect(() => {
+    let isMounted = true;
+    let pollInterval: NodeJS.Timeout;
+
     const fetchKernelStatus = async () => {
       try {
         const response = await fetch('/core-api/status', {
@@ -573,40 +832,46 @@ export default function App() {
             'Cache-Control': 'no-cache'
           }
         });
+        
+        if (!isMounted) return;
+
         const contentType = response.headers.get('content-type');
         if (response.ok && contentType && contentType.includes('application/json')) {
           try {
             const data = await response.json();
-            if (data && data.registers) setRegisters(data.registers);
-            if (data && data.ips !== undefined) setIps(data.ips);
-            if (data && data.ticks !== undefined) setTicks(data.ticks);
-            
-            if (data && typeof data.ips === 'number') {
-              // Estimate CPU load based on IPS (max ~10000 IPS for 100%)
-              const load = Math.min(100, Math.floor((data.ips / 10000) * 100));
-              setCpuLoad(load);
-              setCpuTemp(40 + Math.floor(load / 5));
+            if (data && isMounted) {
+              if (data.registers) setRegisters(data.registers);
+              if (data.ips !== undefined) setIps(data.ips);
+              if (data.ticks !== undefined) setTicks(data.ticks);
+              
+              if (typeof data.ips === 'number') {
+                const load = Math.min(100, Math.floor((data.ips / 10000) * 100));
+                setCpuLoad(load);
+                setCpuTemp(40 + Math.floor(load / 5));
+              }
             }
           } catch (parseErr) {
-            console.error("App: Failed to parse kernel status JSON", parseErr);
+            console.warn("App: Kernel status parse warning", parseErr);
           }
-        } else if (response.ok) {
-          console.warn("App: Kernel status returned non-JSON content type:", contentType);
         }
       } catch (err: any) {
-        // Log more details to help diagnose "The string did not match the expected pattern"
-        console.error("App: Failed to fetch kernel status", {
-          message: err?.message,
-          name: err?.name,
-          code: err?.code,
-          stack: err?.stack,
-          url: '/core-api/status'
-        });
+        // Silent during normal cleanup, otherwise log core issues
+        if (isMounted) {
+          console.debug("App: Kernel sync delayed or failed", err.message);
+        }
+      } finally {
+        if (isMounted) {
+          pollInterval = setTimeout(fetchKernelStatus, 5000);
+        }
       }
     };
 
-    const interval = setInterval(fetchKernelStatus, 2000);
-    return () => clearInterval(interval);
+    fetchKernelStatus();
+
+    return () => {
+      isMounted = false;
+      clearTimeout(pollInterval);
+    };
   }, []);
 
   const executeExpansion = async () => {
@@ -637,25 +902,9 @@ export default function App() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      // Simulate CPU Load
-      setCpuLoad(prev => {
-        const target = Math.random() * 100;
-        return prev + (target - prev) * 0.1;
-      });
-      
-      // Simulate CPU Temp
-      setCpuTemp(prev => {
-        const target = 40 + (cpuLoad / 2) + (Math.random() * 5);
-        return prev + (target - prev) * 0.1;
-      });
-
-      // Simulate Registers
-      const newRegs: Record<string, string> = {};
-      ['r1', 'r2', 'r3', 'r4'].forEach(r => {
-        newRegs[r] = '0x' + Math.floor(Math.random() * 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
-      });
-      setRegisters(newRegs);
-    }, 1000);
+      // Logic for background tasks that don't conflict with real kernel data
+      // For example, keeping the session or background checks
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -766,7 +1015,8 @@ export default function App() {
     const q = query(
       collection(db, 'messages'),
       where('receiverEmail', '==', currentUser.email),
-      where('read', '==', false)
+      where('read', '==', false),
+      limit(50) // Limit to 50 unread messages for bubble count
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -811,45 +1061,53 @@ export default function App() {
   useEffect(() => {
     if (!isAuthed) return;
     
-    const unsubscribeApps = onSnapshot(collection(db, 'apps'), (snapshot) => {
-      const restoredApps = snapshot.docs.map(doc => {
-        const entry = doc.data();
-        const meta = entry.meta || { 
-          name: `App_${(entry.hash_id || '').substring(0, 5)}`, 
-          icon: "Code", 
-          color: "#8b5cf6", 
-          description: (entry.core_meaning || '').substring(0, 30) 
-        };
-        const DynamicIcon = (LucideIcons as any)[meta.icon] || Code;
-        
-        return {
-          id: `app_${entry.hash_id}`,
-          name: meta.name,
-          icon: <DynamicIcon className="w-10 h-10" style={{ color: meta.color }} />,
-          prompt: entry.core_meaning,
-          hash: entry.hash_id,
-          config: {
+    const fetchApps = async () => {
+      try {
+        const snapshot = await getDocs(query(collection(db, 'apps'), limit(20)));
+        const restoredApps = snapshot.docs.map(doc => {
+          const entry = doc.data();
+          const meta = entry.meta || { 
+            name: `App_${(entry.hash_id || '').substring(0, 5)}`, 
+            icon: "Code", 
+            color: "#8b5cf6", 
+            description: (entry.core_meaning || '').substring(0, 30) 
+          };
+          const DynamicIcon = (LucideIcons as any)[meta.icon] || Code;
+          
+          return {
+            id: `app_${entry.hash_id}`,
             name: meta.name,
-            description: meta.description,
-            uiType: meta.uiType || 'list',
-            color: meta.color,
-            html_payload: entry.html_payload
-          }
-        };
-      });
-      
-      setApps(prev => {
-        const existingIds = prev.map(a => a.id);
-        const newApps = restoredApps.filter((a: any) => !existingIds.includes(a.id));
-        return [...prev, ...newApps];
-      });
-    }, (error) => {
-      console.error("Failed to restore apps from Semantic Ledger in Firestore", error);
-    });
-
-    return () => {
-      unsubscribeApps();
+            icon: <DynamicIcon className="w-10 h-10" style={{ color: meta.color }} />,
+            prompt: entry.core_meaning,
+            hash: entry.hash_id,
+            config: {
+              name: meta.name,
+              description: meta.description,
+              uiType: meta.uiType || 'list',
+              color: meta.color,
+              html_payload: entry.html_payload
+            }
+          };
+        });
+        
+        setApps(prev => {
+          const existingIds = prev.map(a => a.id);
+          const forbiddenIds = ['lookup', 'diffus', 'neon canvas', 'neon_canvas'];
+          const forbiddenNames = ['Hacker Lookup', 'Diffus', 'Neon Canvas', 'neon canvas', 'hacker loo'];
+          
+          const newApps = restoredApps.filter((a: any) => 
+            !existingIds.includes(a.id) && 
+            !forbiddenIds.includes(a.id) &&
+            !forbiddenNames.includes(a.name)
+          );
+          return [...prev, ...newApps];
+        });
+      } catch (error) {
+        console.error("Failed to restore apps from Semantic Ledger in Firestore", error);
+      }
     };
+
+    fetchApps();
   }, [isAuthed]);
 
   const handleLogout = async () => {
@@ -912,23 +1170,34 @@ export default function App() {
   return (
     <div ref={desktopRef} className={`relative w-full h-[100dvh] overflow-hidden text-white selection:bg-blue-500/40 selection:text-white bg-[#020617] ${theme}`}>
       {/* Immersive Glass Backgrounds */}
-      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none transform-gpu">
         <motion.div 
-          animate={isAnyMaximized ? { scale: 1.1, filter: 'blur(40px)', opacity: 0.8 } : { scale: 1, filter: 'blur(0px)', opacity: 1 }}
-          transition={{ duration: 1 }}
+          animate={(isAnyMaximized || isSubIslandOpen) ? { scale: 1.05, opacity: 0.7 } : { scale: 1, opacity: 1 }}
+          transition={{ duration: 0.6, ease: "circOut" }}
           className="absolute inset-0"
         >
           <div className="absolute inset-0 bg-gradient-to-br from-blue-950/40 via-purple-950/40 to-black pointer-events-none" />
           <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-blue-600/10 rounded-full blur-[150px] animate-pulse" />
           <div className="absolute bottom-[-15%] right-[-5%] w-[50%] h-[50%] bg-purple-600/10 rounded-full blur-[150px] animate-pulse delay-1000" />
-          <NetworkVisualizer />
         </motion.div>
       </div>
 
-      {/* Top Left Time - Removed as it's now in Dynamic Island */}
+      {/* Click-outside listener for expanded island */}
+      <AnimatePresence>
+        {isSubIslandOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            onPointerDown={() => setIsSubIslandOpen(false)}
+            className="fixed inset-0 z-[7000] bg-black/60 transform-gpu"
+          />
+        )}
+      </AnimatePresence>
 
       {/* Top Bar (Floating Pill) */}
-      <div className="fixed top-2 left-1/2 transform -translate-x-1/2 z-[200] flex items-center justify-center pointer-events-auto">
+      <div className={`fixed ${isStandalone || isFullscreen ? 'top-0' : 'top-[9px]'} left-1/2 transform -translate-x-1/2 z-[8000] flex items-center justify-center pointer-events-auto transition-all duration-500`}>
         <motion.div 
           layoutId="dynamic-island-container"
           ref={islandRef}
@@ -977,7 +1246,7 @@ export default function App() {
                   }}
                 >
                   <div className="w-5 h-5 flex items-center justify-center text-white drop-shadow-lg">
-                    <LucideIcons.Clock className="w-5 h-5" />
+                    <Clock className="w-5 h-5" />
                   </div>
                 </div>
               </motion.div>
@@ -1027,13 +1296,36 @@ export default function App() {
             )}
           </AnimatePresence>
 
-          {/* Main Dynamic Island (Anchored in center) */}
-          <div className={`relative z-10 glass-panel rounded-full flex items-center justify-center gap-2 text-xs font-medium text-slate-200 transition-all duration-700 h-10 ${isAnyMaximized ? 'w-[240px] md:w-[288px]' : 'px-4 hover:bg-slate-800/60'}`}
-               style={isAnyMaximized ? { 
-                 boxShadow: `0 0 40px ${activeMaximizedApp?.config.color || '#ffffff'}88, inset 0 0 20px ${activeMaximizedApp?.config.color || '#ffffff'}66`,
-                 border: `2px solid ${activeMaximizedApp?.config.color || '#ffffff'}AA`,
-                 background: `rgba(10, 15, 30, 0.95)`
-               } : {}}>
+          {/* Combined Dynamic Island System */}
+          <motion.div 
+            layout
+            transition={SMOOTH_SPRING}
+            whileTap={{ scale: 0.97 }}
+            onClick={(e) => {
+              setIsSubIslandOpen(!isSubIslandOpen);
+              e.stopPropagation();
+            }}
+            className={`relative z-10 rounded-[3rem] flex flex-col items-center justify-start text-xs font-medium text-slate-200 overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-white/5 transform-gpu ${
+              isSubIslandOpen 
+                ? 'min-h-[220px] p-[6px] w-[300px] md:w-[360px]' 
+                : isAnyMaximized 
+                  ? 'h-10 w-[280px] md:w-[340px]' 
+                  : 'h-10 w-[300px] md:w-[360px]'
+            }`}
+            style={{
+              background: isSubIslandOpen 
+                ? 'radial-gradient(150% 120% at 50% 0%, #000 15%, rgba(10, 25, 60, 0.9) 60%, #000 100%)' 
+                : '#000000',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              boxShadow: isAnyMaximized 
+                ? `0 0 40px ${activeMaximizedApp?.config.color || '#ffffff'}44, inset 0 0 20px ${activeMaximizedApp?.config.color || '#ffffff'}22` 
+                : isSubIslandOpen 
+                  ? '0 30px 60px -12px rgba(0,0,0,0.9), 0 18px 36px -18px rgba(0,0,0,0.9)'
+                  : '0 8px 32px 0 rgba(0,0,0,0.8)',
+              border: isAnyMaximized ? `1.5px solid ${activeMaximizedApp?.config.color || '#ffffff'}66` : '1px solid rgba(255,255,255,0.05)'
+            }}
+          >
             <DynamicIslandContent 
               isRateLimited={isRateLimited}
               isAnyMaximized={isAnyMaximized}
@@ -1044,20 +1336,17 @@ export default function App() {
               isExpanding={isExpanding}
               expansionProgress={expansionProgress}
               ips={ips}
-              ticks={ticks}
             />
-          </div>
-          
-          <AnimatePresence>
-            {isSubIslandOpen && !isAnyMaximized && (
-              <motion.div
-                initial={{ y: -20, opacity: 0 }}
-                animate={{ y: 8, opacity: 1 }}
-                exit={{ y: -20, opacity: 0 }}
-                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                className="absolute top-full mt-2"
-              >
-                <div className="pt-1 pb-2 px-1">
+
+            <AnimatePresence>
+              {isSubIslandOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                  transition={SMOOTH_SPRING}
+                  className="mt-2 w-full flex justify-center"
+                >
                   <SubIslandContent 
                     setShowExpansionConfirm={setShowExpansionConfirm}
                     isExpanding={isExpanding}
@@ -1074,11 +1363,13 @@ export default function App() {
                     toggleFullscreen={toggleFullscreen}
                     isFullscreen={isFullscreen}
                     isStandalone={isStandalone}
+                    ips={ips}
+                    activeNodesCount={activeNodesCount}
                   />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
 
           <AnimatePresence>
             {isActiveUsersVisible && (
@@ -1241,8 +1532,8 @@ export default function App() {
           className="w-1.5 h-8 bg-white/10 hover:bg-white/30 transition-colors rounded-sm border-l border-white/5"
           title="Zobraziť plochu"
         />
-        <div className="text-[10px] font-mono opacity-20 tracking-widest">
-          {version}
+        <div className="text-[10px] font-mono opacity-20 tracking-widest text-right">
+          autor:romaniznan | {version}
         </div>
       </div>
 
@@ -1269,13 +1560,16 @@ export default function App() {
               toggleWindow={toggleWindow}
             >
               {id === 'laucoin' && <LauCoinApp systemUser={currentUser} theme={theme} setTheme={setTheme} />}
+              {id === 'SoulMap' && <SoulMapApp />}
               {id === 'lau_chat' && <LaurinChatApp currentUser={currentUser} />}
               {id === 'messenger' && <MessengerApp currentUser={currentUser} />}
               {id === 'system' && <SystemInfoApp />}
               {id === 'kernel' && <KernelLogsApp />}
               {id.startsWith('app_') && <GenericApp config={app!.config} />}
               {id === 'becreative' && <BeCreativeApp apps={apps} addApp={addApp} removeApp={removeApp} currentUser={currentUser} />}
-              {id === 'lookup' && <OSINTApp />}
+              {id === 'predator' && <PredatorApp />}
+              {id === 'osint' && <OSINTApp />}
+              {id === 'offgrid' && <OffgridApp />}
             </Window>
           );
         })}
@@ -1294,7 +1588,7 @@ export default function App() {
               <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/5">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-blue-500/20 rounded-xl">
-                    <LucideIcons.Settings className="w-5 h-5 text-blue-400" />
+                    <Settings className="w-5 h-5 text-blue-400" />
                   </div>
                   <div>
                     <h2 className="text-sm font-bold text-white uppercase tracking-widest">Systémové Jadro</h2>
@@ -1305,7 +1599,7 @@ export default function App() {
                   onClick={() => setShowSystemHub(false)}
                   className="p-2 hover:bg-white/5 rounded-full text-gray-500 transition-colors"
                 >
-                  <LucideIcons.X className="w-5 h-5" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
@@ -1319,7 +1613,7 @@ export default function App() {
                       disabled={seeding}
                       className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group"
                     >
-                      <LucideIcons.Database className={`w-6 h-6 text-purple-400 ${seeding ? 'animate-pulse' : 'group-hover:scale-110'}`} />
+                      <Database className={`w-6 h-6 text-purple-400 ${seeding ? 'animate-pulse' : 'group-hover:scale-110'}`} />
                       <span className="text-[10px] font-bold uppercase tracking-wider">Cloud Seed</span>
                     </button>
                     <button 
@@ -1327,7 +1621,7 @@ export default function App() {
                       disabled={seeding}
                       className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group"
                     >
-                      <LucideIcons.RefreshCw className={`w-6 h-6 text-emerald-400 ${seeding ? 'animate-spin' : 'group-hover:scale-110'}`} />
+                      <RefreshCw className={`w-6 h-6 text-emerald-400 ${seeding ? 'animate-spin' : 'group-hover:scale-110'}`} />
                       <span className="text-[10px] font-bold uppercase tracking-wider">Cloud Sync</span>
                     </button>
                     <button 
@@ -1335,14 +1629,14 @@ export default function App() {
                       disabled={isExpanding}
                       className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group"
                     >
-                      <LucideIcons.Cpu className={`w-6 h-6 text-blue-400 ${isExpanding ? 'animate-pulse' : 'group-hover:scale-110'}`} />
+                      <Cpu className={`w-6 h-6 text-blue-400 ${isExpanding ? 'animate-pulse' : 'group-hover:scale-110'}`} />
                       <span className="text-[10px] font-bold uppercase tracking-wider">ASE Expansion</span>
                     </button>
                     <button 
                       onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                       className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group"
                     >
-                      {theme === 'dark' ? <LucideIcons.Sun className="w-6 h-6 text-amber-400" /> : <LucideIcons.Moon className="w-6 h-6 text-slate-400" />}
+                      {theme === 'dark' ? <Sun className="w-6 h-6 text-amber-400" /> : <Moon className="w-6 h-6 text-slate-400" />}
                       <span className="text-[10px] font-bold uppercase tracking-wider">Switch Theme</span>
                     </button>
                   </div>
@@ -1356,8 +1650,8 @@ export default function App() {
                   
                   <div className="space-y-2">
                     <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Aktívny Provider</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {(['gemini', 'custom', 'local'] as const).map((p) => (
+                    <div className="grid grid-cols-2 gap-2">
+                      {(['gemini', 'ollama', 'custom', 'local'] as const).map((p) => (
                         <button
                           key={p}
                           onClick={() => setPreferredProvider(p)}
@@ -1367,7 +1661,7 @@ export default function App() {
                               : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
                           }`}
                         >
-                          {p === 'gemini' ? 'Gemini 3.1' : p === 'custom' ? 'Custom API' : 'Local GGUF'}
+                          {p === 'gemini' ? 'Gemini 3.1' : p === 'ollama' ? 'Ollama' : p === 'custom' ? 'Custom API' : 'Local GGUF'}
                         </button>
                       ))}
                     </div>
@@ -1382,13 +1676,65 @@ export default function App() {
                         className="space-y-2"
                       >
                         <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Gemini API Key</label>
-                        <input 
-                          type="password" 
-                          value={geminiApiKey}
-                          onChange={(e) => setGeminiApiKey(e.target.value)}
-                          placeholder="AIzaSy..."
-                          className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm text-white font-mono focus:border-blue-500/50 outline-none transition-all"
-                        />
+                        <div className="space-y-1">
+                          <input 
+                            type="password" 
+                            value={geminiApiKey}
+                            onChange={(e) => {
+                              setGeminiApiKey(e.target.value);
+                              if (apiKeyError) setApiKeyError(null);
+                            }}
+                            placeholder="AIzaSy..."
+                            className={`w-full bg-white/5 border rounded-xl py-3 px-4 text-sm text-white font-mono outline-none transition-all ${
+                              apiKeyError ? 'border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.2)]' : 'border-white/10 focus:border-blue-500/50'
+                            }`}
+                          />
+                          <AnimatePresence>
+                            {apiKeyError && (
+                              <motion.p 
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="text-[10px] text-red-400 font-bold ml-1"
+                              >
+                                {apiKeyError}
+                              </motion.p>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {preferredProvider === 'ollama' && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="space-y-4"
+                      >
+                        <div className="space-y-1">
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Ollama API URL</label>
+                          <input 
+                            type="url" 
+                            value={customApiUrl || "http://localhost:11434"}
+                            onChange={(e) => setCustomApiUrl(e.target.value)}
+                            placeholder="http://localhost:11434"
+                            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm text-white font-mono focus:border-blue-500/50 outline-none transition-all"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Ollama Model</label>
+                          <input 
+                            type="text" 
+                            value={customModel || "llama3"}
+                            onChange={(e) => setCustomModel(e.target.value)}
+                            placeholder="llama3"
+                            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm text-white font-mono focus:border-blue-500/50 outline-none transition-all"
+                          />
+                        </div>
+                        <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl text-[9px] text-blue-300">
+                          Pre lokálnu Ollamu mimo cloudu použite tunel (napr. Ngrok) a vložte verejnú URL.
+                        </div>
                       </motion.div>
                     )}
 
@@ -1441,7 +1787,7 @@ export default function App() {
                       >
                         <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20 text-[10px] text-purple-300">
                           <div className="flex items-center gap-2 mb-2">
-                             <LucideIcons.ShieldAlert className="w-4 h-4 text-purple-400" />
+                             <ShieldAlert className="w-4 h-4 text-purple-400" />
                              <span className="font-bold">KERNEL ROOT INTEGRATION ACTIVE</span>
                           </div>
                           Model je prepojený priamo so systémovými prostriedkami. Obchádzame štandardné portovanie pre maximálnu rýchlosť odozvy kernelu.
@@ -1450,26 +1796,151 @@ export default function App() {
                         <div className="space-y-2">
                           <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Koreňový súbor modelu (.gguf)</label>
                           <div className="relative group">
-                            <LucideIcons.Cpu className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-500 group-focus-within:text-blue-400 transition-colors" />
+                            <Cpu className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-500 group-focus-within:text-blue-400 transition-colors" />
                             <input 
                               type="text" 
                               value={localModelPath}
                               onChange={(e) => setLocalModelPath(e.target.value)}
-                              placeholder="napr. laurin-kernel-v1.gguf"
+                              placeholder="napr. Qwen2.5-1.5b-instruct-q4_k_m.gguf"
+                              className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-sm text-white font-mono focus:border-purple-500/50 outline-none transition-all shadow-[inset_0_0_20px_rgba(147,51,234,0.05)]"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">URL na stiahnutie (HuggingFace apod.)</label>
+                          <div className="relative group">
+                            <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-500 group-focus-within:text-blue-400 transition-colors" />
+                            <input 
+                              type="url" 
+                              value={localModelUrl}
+                              onChange={(e) => setLocalModelUrl(e.target.value)}
+                              placeholder="napr. https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf?download=true"
                               className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-sm text-white font-mono focus:border-purple-500/50 outline-none transition-all shadow-[inset_0_0_20px_rgba(147,51,234,0.05)]"
                             />
                           </div>
                         </div>
 
                         {localModelPath && (
-                          <div className="flex items-center justify-between p-3 bg-purple-500/20 border border-purple-500/30 rounded-xl">
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 bg-purple-500 rounded-full animate-ping" />
-                              <span className="text-[10px] text-purple-400 font-bold uppercase tracking-tighter">Root Authority Established</span>
+                          <div className="flex flex-col gap-3">
+                            <div className="flex items-center justify-between p-3 bg-purple-500/20 border border-purple-500/30 rounded-xl">
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-purple-500 rounded-full animate-ping" />
+                                <span className="text-[10px] text-purple-400 font-bold uppercase tracking-tighter">Root Authority Established</span>
+                              </div>
+                              <Zap className="w-3 h-3 text-yellow-500 animate-pulse" />
                             </div>
-                            <LucideIcons.Zap className="w-3 h-3 text-yellow-500 animate-pulse" />
+
+                            <div className="space-y-4 p-4 rounded-xl border border-white/10 bg-black/20 mt-2">
+                              <div className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Parametre jadra</div>
+                              
+                              <div className="flex flex-col gap-1">
+                                <div className="flex justify-between text-xs text-gray-300">
+                                  <span>Teplota (Kreativita)</span>
+                                  <span className="font-mono text-purple-400">{localModelTemp.toFixed(1)}</span>
+                                </div>
+                                <input 
+                                  type="range" min="0" max="2" step="0.1"
+                                  value={localModelTemp} onChange={e => setLocalModelTemp(parseFloat(e.target.value))}
+                                  className="w-full accent-purple-500 cursor-pointer" 
+                                />
+                              </div>
+
+                              <div className="flex flex-col gap-1">
+                                <div className="flex justify-between text-xs text-gray-300">
+                                  <span>Max. kontext (Tokens)</span>
+                                  <span className="font-mono text-purple-400">{localModelMaxTokens}</span>
+                                </div>
+                                <input 
+                                  type="range" min="256" max="32768" step="256"
+                                  value={localModelMaxTokens} onChange={e => setLocalModelMaxTokens(parseInt(e.target.value, 10))}
+                                  className="w-full accent-purple-500 cursor-pointer" 
+                                />
+                              </div>
+
+                              <div className="flex flex-col gap-1">
+                                <div className="flex justify-between text-xs text-gray-300">
+                                  <span>Top-P (Koncentrácia)</span>
+                                  <span className="font-mono text-purple-400">{localModelTopP.toFixed(2)}</span>
+                                </div>
+                                <input 
+                                  type="range" min="0" max="1" step="0.05"
+                                  value={localModelTopP} onChange={e => setLocalModelTopP(parseFloat(e.target.value))}
+                                  className="w-full accent-purple-500 cursor-pointer" 
+                                />
+                              </div>
+                            </div>
                           </div>
                         )}
+
+                        <div className="flex flex-col gap-3 mt-4">
+                            <button
+                              onClick={downloadModel}
+                              disabled={downloading}
+                              className="w-full py-3 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-700 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
+                            >
+                              {downloading ? 'Iniciujem sťahovanie...' : 'Stiahnuť Dolphin Agent'}
+                            </button>
+
+                            {downloadProgress && (downloading || downloadProgress.status === 'completed' || downloadProgress.status === 'error') && (
+                              <div className="space-y-2">
+                                <div className="flex justify-between text-[9px] font-bold uppercase tracking-tighter">
+                                  <span className={downloadProgress.status === 'error' ? 'text-red-400' : 'text-purple-400'}>
+                                    {downloadProgress.status === 'downloading' ? `Sťahujem: ${downloadProgress.progress}%` : 
+                                     downloadProgress.status === 'completed' ? 'Dokončené' : 
+                                     downloadProgress.status === 'error' ? 'Chyba' : 'Pripravujem...'}
+                                  </span>
+                                  {downloadProgress.status === 'downloading' && (
+                                    <span className="text-gray-500 animate-pulse">Sťahovanie...</span>
+                                  )}
+                                </div>
+                                <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/10 p-[1px]">
+                                  <motion.div 
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${downloadProgress.progress}%` }}
+                                    className={`h-full rounded-full ${
+                                      downloadProgress.status === 'error' ? 'bg-red-500' : 
+                                      downloadProgress.status === 'completed' ? 'bg-green-500' : 'bg-purple-500'
+                                    }`}
+                                  />
+                                </div>
+                                {downloadProgress.error && (
+                                  <p className="text-[8px] text-red-500/80 font-mono italic">{downloadProgress.error}</p>
+                                )}
+                              </div>
+                            )}
+
+                            {localModels.length > 0 && (
+                              <div className="space-y-2 mt-4">
+                                <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Stiahnuté modely v kerneli</label>
+                                <div className="space-y-1.5">
+                                  {localModels.map((model) => (
+                                    <div key={model} className="flex items-center justify-between p-2.5 bg-white/5 border border-white/10 rounded-lg group hover:border-purple-500/30 transition-all">
+                                      <div className="flex items-center gap-2 overflow-hidden">
+                                        <FileCode className="w-3 h-3 text-purple-400 shrink-0" />
+                                        <span className="text-[10px] text-gray-300 font-mono truncate">{model}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <button 
+                                          onClick={() => applyLocalModel(model)}
+                                          className="text-[9px] text-blue-400 hover:text-blue-300 font-bold uppercase tracking-tighter px-2 py-1 bg-blue-500/10 rounded"
+                                        >
+                                          Nastaviť
+                                        </button>
+                                        <button 
+                                          onClick={() => deleteModel(model)}
+                                          className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-all"
+                                          title="Vymazať model"
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -1478,7 +1949,7 @@ export default function App() {
                   {isMobile && !isStandalone && (
                     <div className="mt-8 p-5 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-100 flex flex-col gap-3">
                       <div className="flex items-center gap-2 font-bold text-blue-400">
-                        <LucideIcons.Share className="w-4 h-4" />
+                        <Share className="w-4 h-4" />
                         AKTIVÁCIA TRUE FULLSCREEN (iOS)
                       </div>
                       <p className="leading-relaxed opacity-80">
@@ -1519,7 +1990,7 @@ export default function App() {
               className="max-w-md w-full glass-panel border border-white/10 rounded-3xl p-8 shadow-2xl text-center"
             >
               <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <LucideIcons.Brain className="w-8 h-8 text-purple-400" />
+                <Brain className="w-8 h-8 text-purple-400" />
               </div>
               <h3 className="text-xl font-bold text-white mb-4">Expanzia vedomia</h3>
               <p className="text-gray-300 mb-8 leading-relaxed">
@@ -1557,7 +2028,7 @@ export default function App() {
               className="max-w-md w-full glass-panel border border-white/10 rounded-3xl p-8 shadow-2xl text-center"
             >
               <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <LucideIcons.LogOut className="w-8 h-8 text-red-400" />
+                <LogOut className="w-8 h-8 text-red-400" />
               </div>
               <h3 className="text-xl font-bold text-white mb-4">Odhlásenie</h3>
               <p className="text-gray-300 mb-8 leading-relaxed">
@@ -1584,29 +2055,6 @@ export default function App() {
           </div>
         )}
       </AnimatePresence>
-
-      {/* iOS Style Mobile Bottom Dock */}
-      {isMobile && (
-        <div className="fixed bottom-6 left-6 right-6 h-20 glass-panel rounded-[2.5rem] z-[5000] flex items-center justify-around px-4 border border-white/10 shadow-2xl">
-          {apps.slice(0, 4).map((app) => (
-            <motion.button 
-              key={`dock-${app.id}`}
-              whileTap={{ scale: 0.8 }}
-              onClick={() => toggleWindow(app.id)}
-              className="ios-touch-feedback relative"
-            >
-              <div className={`w-14 h-14 rounded-2xl glass-icon flex items-center justify-center ${openWindows.includes(app.id) ? 'border-white/30 bg-white/10 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : ''}`}>
-                <div className="scale-90 [&>svg]:w-7 [&>svg]:h-7">
-                  {app.icon}
-                </div>
-              </div>
-              {openWindows.includes(app.id) && (
-                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-white rounded-full shadow-[0_0_8px_white]" />
-              )}
-            </motion.button>
-          ))}
-        </div>
-      )}
 
       {/* Home Indicator Bar */}
       <div className="fixed bottom-1.5 left-1/2 -translate-x-1/2 w-36 h-1 bg-white/20 rounded-full z-[6000] mb-0.5" />

@@ -85,10 +85,22 @@ export const ChatApp: React.FC<ChatAppProps> = ({ currentUser }) => {
   };
 
   useEffect(() => {
-    fetchMessages();
-    // Poll for real-time updates from other users
-    const interval = setInterval(fetchMessages, pollInterval);
-    return () => clearInterval(interval);
+    let isMounted = true;
+    let pollTimer: NodeJS.Timeout;
+
+    const pollMessages = async () => {
+      if (!isMounted) return;
+      await fetchMessages();
+      if (isMounted) {
+        pollTimer = setTimeout(pollMessages, pollInterval);
+      }
+    };
+
+    pollMessages();
+    return () => {
+      isMounted = false;
+      clearTimeout(pollTimer);
+    };
   }, [isSending, pollInterval]); // Re-run effect when sending state or interval changes
 
   const sendMessage = async () => {

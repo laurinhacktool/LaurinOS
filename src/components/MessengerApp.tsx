@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, MessageCircle } from 'lucide-react';
-import { collection, onSnapshot, query, addDoc, updateDoc, doc, or, where, orderBy } from 'firebase/firestore';
+import { collection, query, addDoc, updateDoc, doc, or, where, orderBy, limit } from 'firebase/firestore';
+import { onSnapshot } from '../firebase';
 import { db } from '../firebase';
 
 export const MessengerApp: React.FC<{ currentUser: any }> = ({ currentUser }) => {
@@ -12,7 +13,7 @@ export const MessengerApp: React.FC<{ currentUser: any }> = ({ currentUser }) =>
 
   useEffect(() => {
     if (!currentUser) return;
-    const q = query(collection(db, 'users'));
+    const q = query(collection(db, 'users'), limit(30)); // Further limit contact list to save reads
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedUsers = snapshot.docs.map(doc => ({
         email: doc.data().email,
@@ -31,21 +32,22 @@ export const MessengerApp: React.FC<{ currentUser: any }> = ({ currentUser }) =>
   useEffect(() => {
     if (!currentUser) return;
 
-    // Fetch messages where the user is either sender or receiver
+    // Fetch messages where the user is either sender or receiver - limited to last 100
     const q = query(
       collection(db, 'messages'),
       or(
         where('senderEmail', '==', currentUser.email),
         where('receiverEmail', '==', currentUser.email)
       ),
-      orderBy('timestamp', 'asc')
+      orderBy('timestamp', 'desc'),
+      limit(50)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedMessages = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-      }));
+      })).reverse(); // Reverse to get asc order in UI while querying desc for limit
       setMessages(fetchedMessages);
     }, (error) => {
       console.error("Error fetching messages:", error);

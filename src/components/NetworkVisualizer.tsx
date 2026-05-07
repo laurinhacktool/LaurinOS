@@ -6,34 +6,43 @@ export const NetworkVisualizer: React.FC = () => {
   const [ips, setIps] = useState(0);
 
   useEffect(() => {
+    let isMounted = true;
+    let pollTimer: NodeJS.Timeout;
+
     const fetchStatus = async () => {
+      if (!isMounted) return;
       try {
         const response = await fetch('/core-api/status');
         if (response.ok) {
           const data = await response.json();
-          const currentIps = data.ips || 0;
-          setIps(currentIps);
-          setData(prev => [...prev.slice(1), { value: Math.min(100, (currentIps / 5000) * 100) }]);
+          if (isMounted) {
+            const currentIps = data.ips || 0;
+            setIps(currentIps);
+            setData(prev => [...prev.slice(1), { value: Math.min(100, (currentIps / 5000) * 100) }]);
+          }
         }
-      } catch (err) {}
+      } catch (err) {} finally {
+        if (isMounted) {
+          pollTimer = setTimeout(fetchStatus, 1500);
+        }
+      }
     };
 
-    const interval = setInterval(fetchStatus, 1500);
-    return () => clearInterval(interval);
+    fetchStatus();
+    return () => {
+      isMounted = false;
+      clearTimeout(pollTimer);
+    };
   }, []);
 
   return (
-    <div className="flex items-center gap-2">
-      <div className="w-20 h-8 bg-black/20 rounded-lg overflow-hidden">
+    <div className="flex items-center justify-center">
+      <div className="w-20 h-6 bg-black/20 rounded-lg overflow-hidden">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data}>
-            <Line type="monotone" dataKey="value" stroke="#8b5cf6" strokeWidth={2} dot={false} isAnimationActive={false} />
+            <Line type="monotone" dataKey="value" stroke="#8b5cf6" strokeWidth={1.5} dot={false} isAnimationActive={false} />
           </LineChart>
         </ResponsiveContainer>
-      </div>
-      <div className="flex flex-col">
-        <span className="text-[9px] font-mono text-purple-400 font-bold leading-none">{ips}</span>
-        <span className="text-[7px] font-mono text-purple-500/60 uppercase leading-none">IPS</span>
       </div>
     </div>
   );

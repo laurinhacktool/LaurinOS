@@ -85,11 +85,11 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess, onPowerOf
   };
 
   const handleGoogleLogin = async () => {
-    setError('');
-    setLoading(true);
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
+      setError('');
+      setLoading(true);
       const user = result.user;
 
       const userRef = doc(db, 'users', user.uid);
@@ -122,7 +122,11 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess, onPowerOf
       });
     } catch (err: any) {
       console.error("Google Auth Error:", err);
-      setError(err.message || "Chyba pri prihlasovaní cez Google.");
+      if (err.code === 'auth/popup-blocked') {
+        setError("Vyskakovacie okno bolo zablokované. Prosím, otvorte aplikáciu v novej karte (ikona šípky vpravo hore) pre prihlásenie cez Google.");
+      } else {
+        setError(err.message || "Chyba pri prihlasovaní cez Google.");
+      }
     } finally {
       setLoading(false);
     }

@@ -54,7 +54,11 @@ export const SystemInfoApp: React.FC = () => {
 
   // Poll for kernel status (includes learning tasks)
   useEffect(() => {
+    let isMounted = true;
+    let pollTimer: NodeJS.Timeout;
+
     const pollStatus = async () => {
+      if (!isMounted) return;
       try {
         const res = await fetch('/core-api/status', {
           headers: {
@@ -65,19 +69,25 @@ export const SystemInfoApp: React.FC = () => {
         if (res.ok && contentType && contentType.includes('application/json')) {
           try {
             const data = await res.json();
-            if (data && data.learning_tasks) setLearningTasks(data.learning_tasks);
+            if (data && data.learning_tasks && isMounted) setLearningTasks(data.learning_tasks);
           } catch (parseErr) {
             console.error("SystemInfoApp: JSON parse error", parseErr);
           }
         }
       } catch (err) {
         console.error("SystemInfoApp: Status poll failed", err);
+      } finally {
+        if (isMounted) {
+          pollTimer = setTimeout(pollStatus, 2000);
+        }
       }
     };
 
-    const timer = setInterval(pollStatus, 2000);
     pollStatus();
-    return () => clearInterval(timer);
+    return () => {
+      isMounted = false;
+      clearTimeout(pollTimer);
+    };
   }, []);
 
   // Battery monitoring and Firestore sync

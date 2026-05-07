@@ -10,7 +10,8 @@ import { initializeNetwork } from './services/dbInitializer';
 import { LauNode, Transaction, MiningSlot, LauRequest, Lease } from './types';
 import { CoinDetail } from './components/CoinDetail';
 import { db, auth } from './firebase';
-import { collection, onSnapshot, addDoc, query, orderBy, limit, doc, runTransaction, getDocs, writeBatch, getDoc, setDoc } from 'firebase/firestore';
+import { collection, addDoc, query, orderBy, limit, doc, runTransaction, getDocs, writeBatch, getDoc, setDoc } from 'firebase/firestore';
+import { onSnapshot } from './firebase';
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 
 const Skeleton: React.FC<{ className?: string }> = ({ className }) => (
@@ -97,29 +98,35 @@ export default function LauCoinApp({ systemUser, theme, setTheme }: { systemUser
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
+    let pollTimer: NodeJS.Timeout;
+
     const fetchStatus = async () => {
+      if (!isMounted) return;
       try {
-        const res = await fetch('/core-api/status');
-        if (res.ok) {
-          const data = await res.json();
-          // Update chat history if needed (optional here as dedicated chat app exists)
-          // But nodes are important
-          const nodesRes = await fetch('/core-api/laucoin/nodes');
-          if (nodesRes.ok) {
-            const nodesData = await nodesRes.json();
-            if (nodesData.nodes) setNodes(nodesData.nodes);
+        const res = await fetchCore('/core-api/status', {}, 1, 1000); // 1 retry only for polling
+        if (res && isMounted) {
+          const nodesRes = await fetchCore('/core-api/laucoin/nodes', {}, 1, 1000);
+          if (nodesRes && nodesRes.nodes && isMounted) {
+            setNodes(nodesRes.nodes);
           }
-          if (data.learning_tasks) setLearningTasks(data.learning_tasks);
+          if (res.learning_tasks && isMounted) setLearningTasks(res.learning_tasks);
         }
       } catch (err) {
-        console.error("LauCoinApp: Status poll failed", err);
+        if (isMounted) console.warn("LauCoinApp: Status sync delayed");
+      } finally {
+        if (isMounted) {
+          pollTimer = setTimeout(fetchStatus, 8000);
+        }
       }
     };
 
     fetchStatus();
-    const interval = setInterval(fetchStatus, 3000);
-    return () => clearInterval(interval);
-  }, [auth.currentUser]);
+    return () => {
+      isMounted = false;
+      clearTimeout(pollTimer);
+    };
+  }, [isAuthed]);
 
   useEffect(() => {
     const handleSemanticNode = (e: any) => {
@@ -474,8 +481,8 @@ export default function LauCoinApp({ systemUser, theme, setTheme }: { systemUser
       return;
     }
 
-    // Listen to real-time nodes for balance updates and new nodes
-    const unsubscribeNodes = onSnapshot(collection(db, 'nodes'), (snapshot) => {
+    // Listen to real-time nodes for balance updates and new nodes - limited to save read units
+    const unsubscribeNodes = onSnapshot(query(collection(db, 'nodes'), limit(100)), (snapshot) => {
       const cloudNodes = snapshot.docs.map(doc => ({
         address: doc.id,
         ...doc.data()
@@ -518,7 +525,7 @@ export default function LauCoinApp({ systemUser, theme, setTheme }: { systemUser
       handleFirestoreError(error, 'list', 'transactions');
     });
 
-    const unsubscribeMining = onSnapshot(collection(db, 'mining_slots'), (snapshot) => {
+    const unsubscribeMining = onSnapshot(query(collection(db, 'mining_slots'), limit(100)), (snapshot) => {
       const slots = snapshot.docs.map(doc => ({
         id: parseInt(doc.id),
         ...doc.data()
@@ -528,8 +535,8 @@ export default function LauCoinApp({ systemUser, theme, setTheme }: { systemUser
       handleFirestoreError(error, 'list', 'mining_slots');
     });
 
-    // Listen to real-time chat for semantic graph
-    const unsubscribeChat = onSnapshot(collection(db, 'chat'), (snapshot) => {
+    // Listen to real-time chat for semantic graph - limited toล่าสุด 50 messages
+    const unsubscribeChat = onSnapshot(query(collection(db, 'chat'), orderBy('timestamp', 'desc'), limit(50)), (snapshot) => {
       const chat = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -539,8 +546,8 @@ export default function LauCoinApp({ systemUser, theme, setTheme }: { systemUser
       handleFirestoreError(error, 'list', 'chat');
     });
 
-    // Listen to real-time leases
-    const unsubscribeLeases = onSnapshot(collection(db, 'leases'), (snapshot) => {
+    // Listen to real-time leases - limited
+    const unsubscribeLeases = onSnapshot(query(collection(db, 'leases'), limit(50)), (snapshot) => {
       const leaseData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -566,7 +573,7 @@ export default function LauCoinApp({ systemUser, theme, setTheme }: { systemUser
       return;
     }
 
-    const unsubscribeRequests = onSnapshot(collection(db, 'requests'), (snapshot) => {
+    const unsubscribeRequests = onSnapshot(query(collection(db, 'requests'), orderBy('timestamp', 'desc'), limit(50)), (snapshot) => {
       const reqs = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -751,7 +758,7 @@ export default function LauCoinApp({ systemUser, theme, setTheme }: { systemUser
       } catch (e) {
         // Silent fail for passive generation to avoid spamming
       }
-    }, 10000); // Every 10 seconds
+    }, 60000); // Every 60 seconds to save read units
     
     return () => clearInterval(interval);
   }, [user?.address, isAuthed]);

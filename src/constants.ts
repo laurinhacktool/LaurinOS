@@ -15,3 +15,11 @@ export const SNAPPY_SPRING = {
   stiffness: 400,
   mass: 0.5
 };
+
+export const SMOOTH_SPRING = {
+  type: 'spring' as const,
+  damping: 24,
+  stiffness: 260,
+  mass: 1
+};
+

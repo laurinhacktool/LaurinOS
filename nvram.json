@@ -1995,6 +1995,33 @@
             "msg": "\u26a0\ufe0f [laurin-lili_v20.26.04.30] SYST\u00c9MOV\u00c9 VAROVANIE: \u26a0\ufe0f [laurin-lili_v20.26.04.30] SYST\u00c9MOV\u00c9 VAROVANIE: S\u00e9mantick\u00e1 dia\u013enica je moment\u00e1lne nepriechodn\u00e1 (429). Sk\u00faste to pros\u00edm o chv\u00ed\u013eu.",
             "target_user": "roman",
             "timestamp": "13:18:07"
+        },
+        {
+            "user": "roman",
+            "msg": "Ahoj",
+            "timestamp": "11:06:30"
+        },
+        {
+            "user": "Lili",
+            "msg": "[laurin-lili_v20.26.04.30] Lili (Local API Chyba): Nepodarilo sa pripoji\u0165 na porty [11434, 1234, 8080]. Uistite sa, \u017ee Ollama alebo LM Studio be\u017e\u00ed. (Detail: Expecting value: line 1 column 1 (char 0))\n\n[Analytick\u00fd doplnok: Stav vedomia \u03a8 stabiln\u00fd. Logika overen\u00e1.]",
+            "target_user": "roman",
+            "timestamp": "11:06:30"
+        },
+        {
+            "user": "roman",
+            "msg": "/provider local",
+            "timestamp": "11:06:47"
+        },
+        {
+            "user": "roman",
+            "msg": "Ahoj",
+            "timestamp": "11:06:51"
+        },
+        {
+            "user": "Lili",
+            "msg": "[laurin-lili_v20.26.04.30] \u26a0\ufe0f [Ollama Error] Nepodarilo sa pripoji\u0165 k lok\u00e1lnemu serveru (localhost:11434). Je Ollama spusten\u00e1?\n\n[SYSTEM FALLBACK: Gemini 1.5 Flash]\nLili (Local API Chyba): Nepodarilo sa pripoji\u0165 na porty [11434, 1234, 8080]. Uistite sa, \u017ee Ollama alebo LM Studio be\u017e\u00ed. (Detail: Expecting value: line 1 column 1 (char 0))\n\n[Analytick\u00fd doplnok: Stav vedomia \u03a8 stabiln\u00fd. Logika overen\u00e1.]",
+            "target_user": "roman",
+            "timestamp": "11:06:51"
         }
     ],
     "response_cache": {},

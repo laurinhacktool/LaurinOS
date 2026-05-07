@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, User, signInWithEmailAndPassword, createUserWithEmailAndPassword, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
-import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, query, orderBy, limit, serverTimestamp, getDocFromServer, Timestamp, getDocs, where, addDoc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, deleteDoc, onSnapshot as firestoreOnSnapshot, collection, query, orderBy, limit, serverTimestamp, getDocFromServer, Timestamp, getDocs, where, addDoc, getDoc } from 'firebase/firestore';
 
 // Import the Firebase configuration
 import firebaseConfig from '../firebase-applet-config.json';
@@ -43,8 +43,15 @@ interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errorMsg = error instanceof Error ? error.message : String(error);
+  
+  if (errorMsg.includes('Quota') || errorMsg.includes('resource-exhausted') || errorMsg.includes('quota')) {
+    console.error('Firestore Quota Exceeded:', errorMsg);
+    return; // Don't crash the app for quota errors
+  }
+
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errorMsg,
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,
@@ -77,6 +84,13 @@ async function testConnection() {
 }
 testConnection();
 
+export const onSnapshot = (reference: any, observerOrOnNext: any, onError?: any, onCompletion?: any) => {
+  return firestoreOnSnapshot(reference, observerOrOnNext, onError || ((error: any) => {
+    console.error("Uncaught onSnapshot error:", error);
+    handleFirestoreError(error, OperationType.GET, "Unknown_Snapshot");
+  }), onCompletion);
+};
+
 export { 
   signInWithPopup, 
   onAuthStateChanged, 
@@ -89,7 +103,6 @@ export {
   doc, 
   setDoc, 
   deleteDoc,
-  onSnapshot, 
   collection, 
   query, 
   orderBy, 

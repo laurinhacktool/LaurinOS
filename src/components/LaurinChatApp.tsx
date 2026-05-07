@@ -4,7 +4,8 @@ import { generateContentWithRetry } from '../services/geminiService';
 import { Brain, Image as ImageIcon, Send, Loader2, Key, MessageSquare, Settings, Trash2, X, Wifi, WifiOff, Zap, Database, Info, Activity, Globe, Cpu, Hash, BarChart3, Binary, ShieldCheck, Search, AlertCircle, RotateCcw, Sun, Moon, RefreshCw, Bell, LogOut, LayoutDashboard, Share2, Mic, Volume2, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { db, auth } from '../firebase';
-import { onSnapshot, collection } from 'firebase/firestore';
+import { collection, query, orderBy, limit } from 'firebase/firestore';
+import { onSnapshot } from '../firebase';
 import { ApiError, ApiErrorType } from '../types';
 import ApiErrorDisplay from './ApiErrorDisplay';
 
@@ -141,7 +142,7 @@ export const LaurinChatApp: React.FC<LaurinChatAppProps> = ({ currentUser }) => 
     setIsAuthed(!!auth.currentUser);
 
     if (auth.currentUser) {
-      const unsubscribeRequests = onSnapshot(collection(db, 'requests'), (snapshot) => {
+      const unsubscribeRequests = onSnapshot(query(collection(db, 'requests'), orderBy('timestamp', 'desc'), limit(50)), (snapshot) => {
         const reqs = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
@@ -267,9 +268,22 @@ export const LaurinChatApp: React.FC<LaurinChatAppProps> = ({ currentUser }) => 
   };
 
   useEffect(() => {
-    fetchMessages();
-    const interval = setInterval(fetchMessages, 2000);
-    return () => clearInterval(interval);
+    let isMounted = true;
+    let pollTimer: NodeJS.Timeout;
+
+    const pollMessages = async () => {
+      if (!isMounted) return;
+      await fetchMessages();
+      if (isMounted) {
+        pollTimer = setTimeout(pollMessages, 5000);
+      }
+    };
+
+    pollMessages();
+    return () => {
+      isMounted = false;
+      clearTimeout(pollTimer);
+    };
   }, []);
 
   const handleSendCommand = async (cmd: string) => {
