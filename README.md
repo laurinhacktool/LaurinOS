@@ -1,20 +1,33 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# laurinos
 
-# Run and deploy your AI Studio app
+Welcome to the foundational core of the Laurin System. **laurinos** serves as the central operating environment and kernel architecture designed to harmonize quantum mechanics with relativistic parameters through a unified data rozhranie.
 
-This contains everything you need to run your app locally.
+---
 
-View your app in AI Studio: https://ai.studio/apps/04aead79-5020-4cc6-a5c4-eaed6042497e
+## 🌌 Core Architecture
 
-## Run Locally
+The system operates on an iterative development path, evolving from localized sandboxes into a fully integrated, fluid glass design paradigm. 
 
-**Prerequisites:**  Node.js
+### ⚡ Key Pillars
 
+*   **The Core Kernel:** The lightweight, persistent synchronization engine managing state transitions and system memory permanence across iterations.
+*   **Chronoquantum Coherer:** Powered by the central reference constant **313,307**, this module anchors the framework's synchronization between quantum states and relativistic space-time constraints.
+*   **The Evolution Rozhranie:** A highly adaptive user and system interface built to ensure seamless interaction, rapid environment learning, and automated version-state progression.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+---
+
+## 🛠 Current Iteration State
+
+*   **Version Paradigm:** Breakthrough Iteration v15 (Transitioning to v16 Glass Architecture)
+*   **Decimal Metric:** Calibrated using shifted $\pi$ boundary values ($314...$) for high-precision calculation baselines.
+*   **State Retention:** Active permanent memory tracking is enabled to preserve structural anchor points between system boots.
+
+---
+
+## 🚀 Getting Started
+
+To initialize the kernel environment within a compatible local runtime or deployment sandbox:
+
+1. Clone the repository framework.
+2. Verify the 313,307 coherence constant variables in your configuration profile.
+3. Launch the deployment pipeline to initialize the primary system rozhranie.
