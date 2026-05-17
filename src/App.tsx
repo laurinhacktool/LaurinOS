@@ -5,7 +5,7 @@ import {
   LogOut, MessageSquare, BarChart2, Shield, Zap, Code, Terminal, 
   MessageCircle, LayoutGrid, Activity, Radar, Grid, Maximize2, 
   Users, Search, Brain, Clock, FileCode, Trash2, Settings, Share, Coins,
-  Database, RefreshCw, Cpu, Sun, Moon, ShieldAlert, Globe, Radio
+  Database, RefreshCw, Cpu, Sun, Moon, ShieldAlert, Globe
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { NetworkVisualizer } from './components/NetworkVisualizer';
@@ -23,7 +23,6 @@ import { PredatorApp } from './components/PredatorApp';
 import { OSINTApp } from './components/OSINTApp';
 import { ActiveUsersWidget } from './components/ActiveUsersWidget';
 import { AuthScreen } from './components/AuthScreen';
-import { OffgridApp } from './components/OffgridApp';
 import { doc, getDoc, getDocs, setDoc, serverTimestamp, collection, query, where, getCountFromServer, limit } from 'firebase/firestore';
 import { auth, db, onAuthStateChanged, onSnapshot } from './firebase';
 import { SNAPPY_SPRING, SMOOTH_SPRING } from './constants';
@@ -339,24 +338,31 @@ export default function App() {
   useEffect(() => {
     // Keep nodes count in sync - optimized to interval instead of real-time onSnapshot to save reads
     let isMounted = true;
-    const fetchNodesCount = async () => {
-      if (!isMounted) return;
-      try {
-        const countSnap = await getCountFromServer(collection(db, 'nodes'));
-        if (isMounted) setActiveNodesCount(countSnap.data().count);
-      } catch (e) {
-        console.error('Failed to get active nodes count:', e);
-      }
-    };
+    let interval: ReturnType<typeof setInterval>;
     
-    fetchNodesCount(); // initial fetch
-
-    // Refresh every 5 minutes instead of real-time hook
-    const interval = setInterval(fetchNodesCount, 300000); 
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (!isMounted) return;
+      if (user) {
+        const fetchNodesCount = async () => {
+          if (!isMounted) return;
+          try {
+            const countSnap = await getCountFromServer(collection(db, 'nodes'));
+            if (isMounted) setActiveNodesCount(countSnap.data().count);
+          } catch (e) {
+            console.error('Failed to get active nodes count:', e);
+          }
+        };
+        fetchNodesCount(); // initial fetch
+        interval = setInterval(fetchNodesCount, 300000); // Refresh every 5 minutes
+      } else {
+        if (interval) clearInterval(interval);
+      }
+    });
 
     return () => {
       isMounted = false;
-      clearInterval(interval);
+      if (interval) clearInterval(interval);
+      unsubscribeAuth();
     };
   }, []);
 
@@ -435,7 +441,6 @@ export default function App() {
     { id: 'kernel', name: 'Kernel Logs', icon: <Terminal className="w-10 h-10 text-slate-400" />, prompt: '', hash: '', config: { name: 'Kernel Logs', description: 'System Kernel Logs', uiType: 'dashboard', color: '#94a3b8' } },
     { id: 'predator', name: 'Endpoint Predator', icon: <Radar className="w-10 h-10 text-orange-500" />, prompt: '', hash: '', config: { name: 'Endpoint Predator', description: 'APK Reverse Engineering & Semantic Extraction', uiType: 'dashboard', color: '#f97316' } },
     { id: 'osint', name: 'Lau Tracker', icon: <Search className="w-10 h-10 text-red-500" />, prompt: '', hash: '', config: { name: 'Lau Tracker', description: 'Global Hacker DOSSIER Lookup', uiType: 'dashboard', color: '#ef4444' } },
-    { id: 'offgrid', name: 'Offgrid Link', icon: <Radio className="w-10 h-10 text-emerald-500" />, prompt: '', hash: '', config: { name: 'Offgrid Link', description: 'Mesh Network Operator', uiType: 'dashboard', color: '#10b981' } },
   ]);
 
   const islandRef = useRef<HTMLDivElement>(null);
@@ -1569,7 +1574,6 @@ export default function App() {
               {id === 'becreative' && <BeCreativeApp apps={apps} addApp={addApp} removeApp={removeApp} currentUser={currentUser} />}
               {id === 'predator' && <PredatorApp />}
               {id === 'osint' && <OSINTApp />}
-              {id === 'offgrid' && <OffgridApp />}
             </Window>
           );
         })}

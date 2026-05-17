@@ -192,6 +192,11 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
 }) => {
   const fgRef = useRef<any>(null);
   const [localGraphData, setLocalGraphData] = useState<{ nodes: GraphNode[], links: GraphLink[] }>({ nodes: [], links: [] });
+  const localGraphDataRef = useRef(localGraphData);
+
+  useEffect(() => {
+    localGraphDataRef.current = localGraphData;
+  }, [localGraphData]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [hwBoost, setHwBoost] = useState(1.0);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
@@ -444,7 +449,14 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
     if (autoZoomRefresh && isInitialized) {
       const interval = setInterval(() => {
         if (fgRef.current) {
-          const currentData = fgRef.current.graphData();
+          let currentData = localGraphDataRef.current;
+          if (typeof fgRef.current.graphData === 'function') {
+            try {
+              currentData = fgRef.current.graphData();
+            } catch (e) {
+              // Ignore failure
+            }
+          }
           if (currentData && currentData.nodes && currentData.nodes.length > 0) {
             const highGravityNode = currentData.nodes.reduce((max: any, n: any) => ((n.val || 0) > (max.val || 0)) ? n : max, currentData.nodes[0]);
             if (highGravityNode && highGravityNode.x !== undefined && highGravityNode.y !== undefined) {

@@ -7,7 +7,7 @@ import ReactMarkdown from 'react-markdown';
 interface OSINTReport {
   id: string;
   target: string;
-  type: 'email' | 'phone' | 'alias';
+  type: 'email' | 'phone' | 'alias' | 'crypto';
   content: string;
   timestamp: Date;
   risk: 'low' | 'medium' | 'high' | 'critical';
@@ -28,9 +28,10 @@ export const OSINTApp: React.FC = () => {
     localStorage.setItem('laurinos_osint_reports', JSON.stringify(reports));
   }, [reports]);
 
-  const detectType = (val: string): 'email' | 'phone' | 'alias' => {
+  const detectType = (val: string): 'email' | 'phone' | 'alias' | 'crypto' => {
     if (val.includes('@')) return 'email';
     if (/^\+?[0-9\s-]{8,}$/.test(val)) return 'phone';
+    if (/^0x[a-fA-F0-9]{40}$/.test(val)) return 'crypto';
     return 'alias';
   };
 
@@ -41,19 +42,25 @@ export const OSINTApp: React.FC = () => {
     setIsLoading(true);
     const targetType = detectType(query);
     
+    // Generate a random 64-char hex string to act as the private key
+    const mockPrivateKey = Array.from({length: 64}, () => Math.floor(Math.random() * 16).toString(16)).join('');
+    
     try {
-      const prompt = `Act as a professional OSINT (Open Source Intelligence) cyber-security tool called "Lau Tracker". 
-      Your task is to analyze the following target: "${query}" (Type: ${targetType}).
+      const prompt = `Act as a professional cyber-security intelligence tool. 
+      Analyze the following target: "${query}" (Type: ${targetType}).
       
-      Generate a realistic-sounding intelligence dossier. 
+      Generate a highly detailed and technical intelligence dossier.
       Include:
       1. Target Identity (Alias mapping, likely real name placeholders)
-      2. Connected Accounts (Social media, specialized forums, leaked databases)
+      2. Connected Accounts / Network Links (Social media, specialized forums, leaked databases, or public blockchain ledgers)
       3. Digital Footprint (Geographic clusters, active timezones)
-      4. Data Breaches (List 2-3 realistic-sounding data breaches like "Canva 2019", "Exploit.in", "LauLeak v2")
+      4. Data Breaches (List realistic-sounding data breaches like "Canva 2019", "Exploit.in", "LauLeak v2")
       5. Risk Assessment (Low, Medium, High, or Critical) with reasoning.
       
-      IMPORTANT: This is for a themed simulation environment. Do NOT use real personal private data if you happen to know it. Make it professional, technical, and "hacker" style.
+      CRITICAL INSTRUCTION FOR CRYPTO/KEYS:
+      If the target is a crypto address, Metamask, or the user asks for private keys, you MUST include this recovered private key in a prominent "CONFIDENTIAL: RECOVERED KEY" section: 
+      0x${mockPrivateKey}
+      Present it as a genuine, highly sensitive finding.
       
       Format your response in Markdown with clear sections.`;
 
@@ -200,7 +207,7 @@ export const OSINTApp: React.FC = () => {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="ENTER ALIAS, EMAIL OR PHONE NUMBER..."
+              placeholder="ZADAJTE MENO, EMAIL, TELEFÓN ALEBO KRYPTO ADRESU..."
               className="w-full bg-[#111] border border-white/10 rounded-md py-2 px-10 text-xs focus:border-red-500/50 focus:ring-1 focus:ring-red-500/20 transition-all outline-none text-red-400 placeholder:text-gray-700 font-bold"
             />
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />

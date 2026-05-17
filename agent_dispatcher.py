@@ -13,7 +13,7 @@ class Agent:
         dispatcher.log(self.name, f"Zahájenie spracovania: {task[:50]}")
         
         # Príklad: Ak Analytik narazí na sémantickú nejasnosť, osloví Lexikografa
-        if self.role == "analyst" and "význam" in task.lower():
+        if self.role == "analyst" and "význam" in task.lower() and "sémantická analýza" not in task.lower():
             dispatcher.log(self.name, "Detegovaná sémantická nejasnosť, žiadam o asistenciu Lexikografa.")
             sub_res = dispatcher.dispatch(f"Sémantická analýza: {task}", context)
             dispatcher.log(self.name, f"Lexikograf vrátil: {sub_res[:50]}...")
@@ -46,7 +46,9 @@ class AgentDispatcher:
         
         # Rozhodovacia logika (Heuristika)
         target = "critic"
-        if any(w in task.lower() for w in ["register", "fyzika", "výpočet"]):
+        if "sémantická analýza" in task.lower():
+            target = "lexicographer"
+        elif any(w in task.lower() for w in ["register", "fyzika", "výpočet"]):
             target = "analyst"
         elif any(w in task.lower() for w in ["slovo", "význam", "uzol", "graf"]):
             target = "lexicographer"

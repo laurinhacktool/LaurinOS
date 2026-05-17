@@ -73,6 +73,7 @@ export default function LauCoinApp({ systemUser, theme, setTheme }: { systemUser
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<LauNode | null>(null);
   const [ethBalance, setEthBalance] = useState<number>(0);
+  const [web3Address, setWeb3Address] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [isAuthed, setIsAuthed] = useState(false);
   const [loginAddr, setLoginAddr] = useState('');
@@ -734,9 +735,30 @@ export default function LauCoinApp({ systemUser, theme, setTheme }: { systemUser
         setUser(freshUser);
         sessionStorage.setItem('lau_user', JSON.stringify(freshUser));
       }
-      getAlfaBalance(user.address).then(setEthBalance);
+      if (web3Address) {
+        getAlfaBalance(web3Address).then(setEthBalance);
+      } else {
+        getAlfaBalance(user.address).then(setEthBalance);
+      }
     }
-  }, [nodes, user]);
+  }, [nodes, user, web3Address]);
+
+  const handleConnectMetaMask = async () => {
+    try {
+      addKernelLog('Initiating MetaMask connection...', 'WEB3');
+      const address = await connectWallet();
+      if (address) {
+        setWeb3Address(address);
+        addKernelLog(`MetaMask connected: ${address}`, 'WEB3');
+        const balance = await getAlfaBalance(address);
+        setEthBalance(balance);
+        alert(`MetaMask peňaženka pripojená: ${address.substring(0, 8)}...`);
+      }
+    } catch (e) {
+      console.error(e);
+      addKernelLog('MetaMask connection failed', 'ERROR');
+    }
+  };
 
   // Passive semantic generation
   useEffect(() => {
@@ -2288,8 +2310,27 @@ export default function LauCoinApp({ systemUser, theme, setTheme }: { systemUser
             <div className="space-y-6">
               <div>
                 <p className="text-[10px] text-gray-500 uppercase mb-1">Adresa</p>
-                <p className="text-sm text-emerald-600 dark:text-emerald-500/80 break-all font-mono">{user.address}</p>
-                <p className="text-[10px] text-gray-500 uppercase mt-2 mb-1">Private Key (Hidden)</p>
+                <div className="flex items-center justify-between gap-4">
+                  <p className="text-sm text-emerald-600 dark:text-emerald-500/80 break-all font-mono">{user.address}</p>
+                </div>
+                
+                <div className="mt-4 flex items-center gap-4">
+                  <button
+                    onClick={handleConnectMetaMask}
+                    className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg flex items-center gap-2 text-sm font-bold transition-all shadow-md"
+                  >
+                    <Globe className="w-4 h-4" />
+                    {web3Address ? 'MetaMask Pripojený' : 'Pripojiť MetaMask (Mainnet)'}
+                  </button>
+                  {web3Address && (
+                    <div className="text-xs">
+                      <p className="text-gray-500 uppercase">Pripojená Web3 Adresa</p>
+                      <p className="font-mono text-emerald-600 dark:text-emerald-500 font-bold">{web3Address.substring(0,6)}...{web3Address.substring(web3Address.length - 4)}</p>
+                    </div>
+                  )}
+                </div>
+
+                <p className="text-[10px] text-gray-500 uppercase mt-4 mb-1">Private Key (Hidden)</p>
                 <p className="text-sm text-emerald-600 dark:text-emerald-500/80 break-all font-mono blur-sm hover:blur-none transition-all">{user.private_key}</p>
               </div>
 

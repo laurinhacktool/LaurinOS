@@ -12,7 +12,8 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@google/genai": "^1.29.0",
+    "@google/genai": "^1.52.0",
+    "@openzeppelin/contracts": "^5.6.1",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
     "bip32": "^5.0.1",
@@ -25,7 +26,7 @@
     "dotenv": "^17.2.3",
     "ethers": "^6.16.0",
     "express": "^4.22.1",
-    "firebase": "^12.10.0",
+    "firebase": "^12.13.0",
     "http-proxy-middleware": "^3.0.5",
     "jszip": "^3.10.1",
     "lucide-react": "^0.546.0",
@@ -36,12 +37,13 @@
     "react-force-graph-2d": "^1.29.1",
     "react-force-graph-3d": "^1.29.1",
     "react-markdown": "^10.1.0",
-    "recharts": "^2.15.0",
+    "recharts": "^2.15.4",
     "three": "^0.183.2",
     "tiny-secp256k1": "^2.2.4",
     "tsx": "^4.21.0"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.1.2",
     "@types/bip39": "^2.4.2",
     "@types/bitcoinjs-lib": "^4.0.1",
     "@types/d3": "^7.4.3",
@@ -51,10 +53,14 @@
     "@types/react-dom": "^19.2.3",
     "@types/w3c-web-usb": "^1.0.13",
     "autoprefixer": "^10.4.21",
+    "hardhat": "^2.22.17",
     "tailwindcss": "^4.1.14",
     "typescript": "~5.8.2",
     "vite": "^6.4.2",
     "vite-plugin-top-level-await": "^1.6.0",
     "vite-plugin-wasm": "^3.6.0"
+  },
+  "overrides": {
+    "node-domexception": "file:./dummy-domexception"
   }
 }
