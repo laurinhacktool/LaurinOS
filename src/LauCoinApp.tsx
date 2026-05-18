@@ -3189,7 +3189,7 @@ export default function LauCoinApp({ systemUser, theme, setTheme }: { systemUser
                 )}
 
                 <div className="h-64 mb-6 bg-black/5 dark:bg-white/5 rounded-lg p-4">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                     <LineChart data={bitcoinPriceHistory}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#444" />
                       <XAxis dataKey="time" stroke="#888" />

@@ -47,20 +47,39 @@
 
         async function start() {
             const area = document.getElementById('log');
-            for(let i=0; i<logs.length; i++) {
+            
+            // 1. Logs sequence with variable realistic timing
+            for (let i = 0; i < logs.length; i++) {
                 let d = document.createElement('div');
-                d.className = 'line'; d.style.animationDelay = `${i * 0.1}s`;
-                d.innerHTML = `> ${logs[i]}`; area.appendChild(d);
-                await new Promise(r => setTimeout(r, 300));
+                d.className = 'line'; 
+                // Override CSS delay so the animation starts right when appended
+                d.style.animationDelay = '0s'; 
+                d.innerHTML = `> ${logs[i]}`; 
+                area.appendChild(d);
+                
+                // Variable delays for realistic "boot" feel
+                const delay = i === logs.length - 1 ? 500 : Math.floor(Math.random() * 250 + 100);
+                await new Promise(r => setTimeout(r, delay));
             }
+            
+            // 2. ASCII logo render sequence
             const aArea = document.getElementById('ascii-area');
             const lines = ascii.split('\n');
-            for(let l of lines) { aArea.innerHTML += l + '\n'; await new Promise(r => setTimeout(r, 40)); }
+            for (let l of lines) { 
+                aArea.innerHTML += l + '\n'; 
+                await new Promise(r => setTimeout(r, 25)); // slightly faster for a smooth wipe effect
+            }
             
+            await new Promise(r => setTimeout(r, 300));
+            
+            // 3. Display prompt
             const promptDiv = document.getElementById('prompt');
+            promptDiv.style.animationDelay = '0s';
             promptDiv.style.display = 'block';
             
             let bypassBuffer = "";
+            
+            // 4. Input handling
             window.onkeydown = async (e) => {
                 bypassBuffer += e.key.toLowerCase();
                 // Secret bypass: type 'root'

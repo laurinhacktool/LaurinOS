@@ -108,15 +108,30 @@ class ASE_Engine:
         self.running = True
 
     def start_autonomous_growth(self, interval_seconds=600):
-        """Štartuje srdce systému s nastaveným intervalom (agreed: 600s)."""
+        """Štartuje srdce systému s dynamickým intervalom."""
         thread = threading.Thread(target=self._growth_loop, args=(interval_seconds,))
         thread.daemon = True
         thread.start()
-        print(f"[{BRAND}] ASE Rekurzia aktívna ({interval_seconds}s).")
+        print(f"[{BRAND}] ASE Rekurzia aktívna (dynamický interval ~{interval_seconds}s).")
 
-    def _growth_loop(self, interval):
+    def _growth_loop(self, base_interval):
         while self.running:
-            time.sleep(interval)
+            # Dynamický výpočet intervalu
+            ips = self.shared_state.get("ips", 1024)
+            
+            # Ak je systém pod vysokou záťažou (vysoké IPS), predĺžime interval pre odľahčenie.
+            # Ak je záťaž nízka, skrátime interval pre rýchlejší rast.
+            load_factor = max(0.5, min(2.0, ips / 2048.0)) 
+            
+            # Sémantická aktivita: rýchlejší rast pri veľa nových dátach
+            history = self.uefi.settings.get("chat_history", [])
+            recent_count = sum(1 for m in history[-10:] if "term" in m.get("msg", ""))
+            semantic_factor = 0.5 if recent_count > 0 else 1.0 # Dvakrát rýchlejšie ak máme nové sémantické uzly
+            
+            dynamic_interval = base_interval * load_factor * semantic_factor
+            
+            print(f"[{BRAND}] ASE Dynamic Wait: {dynamic_interval:.2f}s (Load: {ips} IPS)")
+            time.sleep(dynamic_interval)
             self.execute_expansion()
 
     def execute_expansion(self):

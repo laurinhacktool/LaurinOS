@@ -34,7 +34,7 @@ export const CoinDetail: React.FC<CoinDetailProps> = ({ name, symbol, balance, p
         </div>
       </div>
       <div className="h-16 w-full mt-2 relative">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
           <LineChart data={data}>
             <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} dot={false} isAnimationActive={false} />
             <Tooltip 

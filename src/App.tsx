@@ -956,6 +956,23 @@ export default function App() {
     setWindowStates(ws => ({ ...ws, [id]: { ...ws[id], isMinimized: true } }));
   };
 
+  const handleDockClick = (id: string) => {
+    if (!openWindows.includes(id)) {
+      setWindowStates(ws => ({ ...ws, [id]: { isMaximized: true, isMinimized: false } }));
+      setOpenWindows(prev => [...prev, id]);
+    } else {
+      const state = windowStates[id] || { isMaximized: true, isMinimized: false };
+      if (state.isMinimized) {
+        setWindowStates(ws => ({ ...ws, [id]: { ...state, isMinimized: false } }));
+        focusWindow(id);
+      } else if (openWindows[openWindows.length - 1] !== id) {
+        focusWindow(id);
+      } else {
+        minimizeWindow(id);
+      }
+    }
+  };
+
   const toggleMaximize = (id: string) => {
     setWindowStates(ws => ({ ...ws, [id]: { ...ws[id], isMaximized: !ws[id]?.isMaximized } }));
   };
@@ -1384,11 +1401,17 @@ export default function App() {
         </motion.div>
       </div>
 
-      {/* Optimized Desktop/Mobile Icon Grid */}
-      <div className="fixed inset-0 pt-24 pb-32 px-6 md:px-12 pointer-events-none overflow-y-auto custom-scrollbar">
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-y-10 gap-x-4 pointer-events-auto max-w-7xl mx-auto">
+      {/* Bottom Dock for Apps (Replacing Desktop Grid) */}
+      <div className="fixed bottom-6 left-0 right-0 z-[6000] pointer-events-none flex justify-center px-4">
+        <motion.div 
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+          className="flex items-center gap-3 px-4 py-3 rounded-[2rem] bg-white/20 dark:bg-[#111111]/70 backdrop-blur-3xl border border-white/30 dark:border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.2)] dark:shadow-[0_20px_40px_rgba(0,0,0,0.5)] pointer-events-auto max-w-full overflow-x-auto hide-scrollbar"
+        >
           {apps.filter(app => app.id !== 'messenger').map((app) => {
             const isOpen = openWindows.includes(app.id);
+            const isFocused = openWindows[openWindows.length - 1] === app.id;
             const appColor = app.config?.color || '#ffffff';
             
             return (
@@ -1396,50 +1419,49 @@ export default function App() {
                 key={`${app.id}-${currentUser?.email}`}
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
-                whileHover={{ y: -5 }}
+                whileHover={{ y: -6, scale: 1.15 }}
                 whileTap={{ scale: 0.9 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                onClick={() => toggleWindow(app.id)}
-                className="flex flex-col items-center justify-center group cursor-pointer desktop-item"
+                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                onClick={() => handleDockClick(app.id)}
+                className="flex flex-col items-center justify-center group cursor-pointer relative"
               >
-                <div className={`glass-icon w-14 h-14 md:w-16 md:h-16 rounded-[1.3rem] flex items-center justify-center mb-2 relative shadow-lg transition-all duration-500 ${
+                {/* Dock Icon */}
+                <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center relative shadow-lg transition-all duration-300 ${
                   isOpen 
-                    ? 'ring-2 ring-white/50 bg-white/20' 
-                    : ''
+                    ? 'ring-1 ring-white/30 bg-white/10' 
+                    : 'bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20'
                 }`}
                 style={{
                   boxShadow: isOpen 
-                    ? `0 0 20px ${appColor}66, 0 0 40px ${appColor}33` 
+                    ? `0 10px 20px ${appColor}33, inset 0 0 10px ${appColor}11` 
                     : undefined
                 }}
                 >
-                  <div className="scale-100 group-hover:scale-110 transition-transform duration-300">
+                  <div className="[&>svg]:w-6 [&>svg]:h-6 md:[&>svg]:w-7 md:[&>svg]:h-7 text-white drop-shadow-md">
                     {app.icon}
                   </div>
-                  {isOpen && (
-                    <motion.div 
-                      layoutId={`glow-${app.id}`}
-                      className="absolute inset-0 rounded-[1.3rem] animate-pulse"
-                      style={{ backgroundColor: `${appColor}22` }}
-                    />
-                  )}
                 </div>
-                <span className={`text-[10px] md:text-[11px] font-bold drop-shadow-md text-center tracking-tight transition-colors truncate w-full px-1 ${
-                  isOpen ? 'text-white' : 'text-slate-300 group-hover:text-white'
-                }`}>
-                  {app.name}
-                </span>
+                
+                {/* Active Indicator */}
                 {isOpen && (
                   <motion.div 
                     layoutId={`indicator-${app.id}`}
-                    className="mt-1 w-1 h-1 rounded-full shadow-[0_0_5px_white]" 
-                    style={{ backgroundColor: appColor, boxShadow: `0 0 8px ${appColor}` }}
+                    className="absolute -bottom-1.5 w-1 h-1 rounded-full shadow-[0_0_5px_white]" 
+                    style={{ 
+                      backgroundColor: isFocused ? '#ffffff' : appColor, 
+                      boxShadow: isFocused ? '0 0 8px #ffffff' : `0 0 8px ${appColor}` 
+                    }}
                   />
                 )}
+
+                {/* Tooltip on Hover */}
+                <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-transform origin-bottom bg-black/80 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full border border-white/10 pointer-events-none whitespace-nowrap shadow-xl">
+                  {app.name}
+                </span>
               </motion.div>
             );
           })}
-        </div>
+        </motion.div>
       </div>
 
       {/* System Monitor Widget */}

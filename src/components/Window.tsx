@@ -80,7 +80,7 @@ export const Window: React.FC<WindowProps> = ({
         left: '50%',
         x: '-50%',
         y: '-50%',
-        borderRadius: '2rem'
+        borderRadius: '1.2rem'
       }}
       exit={{ opacity: 0, scale: 0.95, y: isMobile ? 100 : 20 }}
       transition={{...SPRING_PRESET, duration: isMobile ? 0.5 : 0.4 }}
@@ -96,71 +96,64 @@ export const Window: React.FC<WindowProps> = ({
             e.stopPropagation();
           }
         }}
-        className={`window-header flex items-center justify-between px-6 shrink-0 relative z-[100] transition-all duration-500 ${
+        className={`window-header flex items-center justify-between px-4 shrink-0 relative z-[100] transition-all duration-500 ${
           (state.isMaximized || isMobile) 
-            ? 'h-16 pt-safe bg-white/5 dark:bg-black/40 border-b border-white/5' 
-            : 'h-14 bg-white/30 dark:bg-white/5 border-b border-white/10 cursor-grab active:cursor-grabbing'
+            ? 'h-14 pt-safe bg-white/5 dark:bg-black/40 border-b border-white/5' 
+            : 'h-12 bg-gradient-to-b from-white/40 to-white/20 dark:from-white/10 dark:to-white/5 border-b border-white/10 cursor-grab active:cursor-grabbing'
         }`}>
         
-        {/* iOS-Style Left Side (Close Button & App Branding) */}
-        <div className="flex items-center gap-4 w-1/3">
+        {/* Modern OS Window Controls (Left side) */}
+        <div className="flex items-center w-1/3">
           {!isMobile && (
-            <button 
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={() => toggleWindow(id)} 
-              className="w-7 h-7 flex items-center justify-center rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"
-              title="Close"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 flex items-center justify-center [&>svg]:w-5 [&>svg]:h-5 p-1.5 glass-panel rounded-xl shadow-inner">
-              {app?.icon}
-            </div>
-            <span className="text-sm font-bold text-gray-900 dark:text-white/90 tracking-tight hidden sm:block truncate">
-              {app?.name}
-            </span>
-          </div>
-        </div>
-        
-        {/* Center: Window Manager Grip / Interaction Handle */}
-        <div className="flex-1 flex justify-center items-center h-full">
-          <div className="flex items-center gap-2 px-3 py-1 bg-black/5 dark:bg-white/5 rounded-full border border-white/10 opacity-60 hover:opacity-100 transition-opacity">
-            <Grip className="w-3.5 h-3.5 text-gray-400" />
-            <div className={`h-1 w-8 bg-current rounded-full ${isMobile ? 'opacity-40' : 'opacity-20'}`} />
-          </div>
-        </div>
-
-        {/* Right Side: Navigation controls */}
-        <div className="flex items-center justify-end w-1/3 gap-4">
-          {!isMobile ? (
-            <div className="flex items-center gap-1.5 p-1.5 bg-black/10 dark:bg-white/5 rounded-full border border-white/5">
+            <div className="flex items-center gap-2 group/controls p-2 -ml-1">
+              <button 
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={() => toggleWindow(id)} 
+                className="w-3 h-3 rounded-full bg-red-400 border border-red-500/50 flex items-center justify-center transition-all"
+                title="Close"
+              >
+                <X className="w-2 h-2 text-red-900 opacity-0 group-hover/controls:opacity-100" />
+              </button>
               <button 
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={() => minimizeWindow(id)} 
-                className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 text-gray-500 dark:text-gray-400 dark:hover:text-white transition-colors"
+                className="w-3 h-3 rounded-full bg-amber-400 border border-amber-500/50 flex items-center justify-center transition-all"
                 title="Minimize"
               >
-                <Minus className="w-4 h-4" />
+                <Minus className="w-2 h-2 text-amber-900 opacity-0 group-hover/controls:opacity-100" />
               </button>
               <button 
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={() => toggleMaximize(id)} 
-                className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 text-gray-500 dark:text-gray-400 dark:hover:text-white transition-colors"
+                className="w-3 h-3 rounded-full bg-green-400 border border-green-500/50 flex items-center justify-center transition-all"
                 title={state.isMaximized ? "Restore" : "Maximize"}
               >
-                <Square className="w-3 h-3" />
+                <Square className="w-1.5 h-1.5 text-green-900 opacity-0 group-hover/controls:opacity-100" />
               </button>
             </div>
-          ) : (
+          )}
+        </div>
+        
+        {/* Center: App Branding */}
+        <div className="flex-1 flex justify-center items-center gap-2 pointer-events-none">
+          <div className="w-5 h-5 flex items-center justify-center [&>svg]:w-4 [&>svg]:h-4 opacity-70">
+            {app?.icon}
+          </div>
+          <span className="text-xs font-semibold text-gray-900 dark:text-gray-200 tracking-wide truncate">
+            {app?.name}
+          </span>
+        </div>
+
+        {/* Right Side: Mobile control or blank */}
+        <div className="flex items-center justify-end w-1/3 gap-4">
+          {isMobile ? (
             <button 
               onClick={() => toggleWindow(id)}
-              className="px-4 py-1.5 bg-blue-500 text-white text-sm font-semibold rounded-full active:scale-95 transition-all shadow-lg shadow-blue-500/20"
+              className="px-3 py-1 bg-blue-500/20 text-blue-400 text-xs font-semibold rounded-full active:scale-95 transition-all"
             >
               HOTOVO
             </button>
-          )}
+          ) : null}
         </div>
       </div>
       {/* Window Content */}

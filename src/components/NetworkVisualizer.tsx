@@ -38,7 +38,7 @@ export const NetworkVisualizer: React.FC = () => {
   return (
     <div className="flex items-center justify-center">
       <div className="w-20 h-6 bg-black/20 rounded-lg overflow-hidden">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
           <LineChart data={data}>
             <Line type="monotone" dataKey="value" stroke="#8b5cf6" strokeWidth={1.5} dot={false} isAnimationActive={false} />
           </LineChart>
